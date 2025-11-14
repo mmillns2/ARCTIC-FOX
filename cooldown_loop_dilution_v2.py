@@ -405,17 +405,14 @@ class Cooldown_routine(Thread):
     
     
             
-def switch_on(device, channel):
+def switch_on(device, channel, voltage):
     IOtype_check = device.get_aio_iotype(channel)
     voltage_check = device.get_aio_voltage(channel)
     if IOtype_check == 'Set out':
-        if voltage_check >1:
-            pass
-        else:
-            device.set_aio_voltage(channel, 5)
+        device.set_aio_voltage(channel, voltage)
     else:
         device.set_aio_iotype(channel, 'Set out')
-        device.set_aio_voltage(channel, 5)
+        device.set_aio_voltage(channel, voltage)
         
 def switch_off(device, channel):
     # aio_channel = device.aio_channels[channel]
