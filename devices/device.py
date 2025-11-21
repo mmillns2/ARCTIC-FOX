@@ -1,9 +1,9 @@
 import serial.tools.list_ports
 from threading import RLock
 
-from CTC100 import CTC100Device
-from lakeshore224device import LakeShore224Device
-from lakeshore372device import LakeShore372Device
+from devices.CTC100 import CTC100Device
+from devices.lakeshore224device import LakeShore224Device
+from devices.lakeshore372device import LakeShore372Device
 
 # Global re-entrant lock used to synchronize access to serial devices
 device_lock = RLock()

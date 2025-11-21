@@ -4,13 +4,12 @@ import numpy as np
 import serial.tools.list_ports
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-
 from threading import Thread, Lock
-from devices.device import device_lock
 
-from CTC100 import CTC100Device
-from lakeshore224device import LakeShore224Device
-from lakeshore372device import LakeShore372Device
+from devices.device import device_lock
+from devices.CTC100 import CTC100Device
+from devices.lakeshore224device import LakeShore224Device
+from devices.lakeshore372device import LakeShore372Device
 
 DEBUG = False
 
