@@ -7,12 +7,12 @@ import serial
 import serial.tools.list_ports
 import numpy as np
 import itertools
-from CTC100 import CTC100Device
-from lakeshore224device import LakeShore224Device
-from lakeshore372device import LakeShore372Device
+from devices.CTC100 import CTC100Device
+from devices.lakeshore224device import LakeShore224Device
+from devices.lakeshore372device import LakeShore372Device
 try:
-    from lakeshore.model_224 import Model224
-    from lakeshore.model_372 import Model372
+    from devices.lakeshore.model_224 import Model224
+    from devices.lakeshore.model_372 import Model372
 except ImportError:
     # If the lakeshore package is not installed, define None
     Model224 = None

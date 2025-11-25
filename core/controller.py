@@ -1,5 +1,5 @@
 from devices.device import device_lock
-from cooldown_loop_dilution_v2 import switch_on, switch_off, heater_on, heater_off
+from core.cooldown_loop_dilution_v2 import switch_on, switch_off, heater_on, heater_off
 
 class DeviceController:
     def __init__(self, devices):
