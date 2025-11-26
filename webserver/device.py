@@ -24,11 +24,11 @@ def connect_devices():
     for p in ports:
         desc = (p.description or "").lower()
         sn = (p.serial_number or "")
-        if 'ft230x' in desc:
+        if 'FT230X' in desc:
             # match the serial numbers you used previously
-            if 'dk0cdlqp' in sn:
+            if 'DK0CDLQP' in sn:
                 ctc100B = CTC100Device(address=p.device, name='CTC100B')
-            elif 'dk0cdkfb' in sn:
+            elif 'DK0CDKFB' in sn:
                 ctc100A = CTC100Device(address=p.device, name='CTC100A')
         elif '224' in desc:
             model224 = LakeShore224Device(port=p.device, name='Lakeshore224')
