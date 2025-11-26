@@ -14,26 +14,24 @@ def connect_devices():
     Each returned device is expected to expose the same methods used elsewhere
     (get_temperature, write_setpoint, set_still_voltage, etc.).
     """
-    ports = serial.tools.list_ports.comports()
+    devices = serial.tools.list_ports.comports()
 
     ctc100A = None
     ctc100B = None
     model224 = None
     model372 = None
 
-    for p in ports:
-        desc = (p.description or "").lower()
-        sn = (p.serial_number or "")
-        if 'FT230X' in desc:
+    for device in devices:
+        if 'FT230X' in device.description:
             # match the serial numbers you used previously
-            if 'DK0CDLQP' in sn:
-                ctc100B = CTC100Device(address=p.device, name='CTC100B')
-            elif 'DK0CDKFB' in sn:
-                ctc100A = CTC100Device(address=p.device, name='CTC100A')
-        elif '224' in desc:
-            model224 = LakeShore224Device(port=p.device, name='Lakeshore224')
-        elif '372' in desc:
-            model372 = LakeShore372Device(port=p.device, name='Lakeshore372')
+            if 'DK0CDLQP' in device.serial_number:
+                ctc100B = CTC100Device(address=device.device, name='CTC100B')
+            elif 'DK0CDKFB' in device.serial_number:
+                ctc100A = CTC100Device(address=device.device, name='CTC100A')
+        elif '224' in device.description:
+            model224 = LakeShore224Device(port=device.device, name='Lakeshore224')
+        elif '372' in device.description:
+            model372 = LakeShore372Device(port=device.device, name='Lakeshore372')
 
     connected = {
     'CTC100A': ctc100A,
