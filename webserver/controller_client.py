@@ -100,7 +100,7 @@ class DeviceControllerClient(threading.Thread):
         Main loop that listens for commands and processes them.
         '''
         with socket.socket() as s:
-            s.bind((self.bind_host, self.port))
+            s.bind((self.host, self.port))
             s.listen()
 
             print("[Client] Ready for commands...")
