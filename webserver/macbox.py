@@ -3,7 +3,7 @@ from device import connect_device
 
 
 HOST = "127.0.0.1"
-PORT = 8083
+PORT = 8084
 
 
 if __name__ == "__main__":
