@@ -79,7 +79,7 @@ class DeviceControllerClient(threading.Thread):
         for name, dev in self.devices.items():
             result[name] = {
                 "name": name,
-                "channels": self.get_channels_for_device(name),
+                "channels": get_channels_for_device(name),
             }
         return json.dumps(result)
 
@@ -103,6 +103,8 @@ class DeviceControllerClient(threading.Thread):
             return "1"
 
         device_name, channel, value = parts[1:]
+        if value != "_":
+            value = float(value)
         func(device_name, channel, value)
 
         return "0"
