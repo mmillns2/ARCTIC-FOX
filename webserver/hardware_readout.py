@@ -3,6 +3,7 @@ import serial
 import numpy as np
 import serial.tools.list_ports
 import threading
+from datetime import datetime
 
 from CTC100 import CTC100Device
 from lakeshore224device import LakeShore224Device
@@ -23,6 +24,7 @@ class HardwareTemperatureReader(threading.Thread):
         self.devices = devices
         self.sql = sql
         self.interval = 2.0
+        self._stop_event = threading.Event()
 
     def read_temperatures(self):
         d = self.devices
@@ -73,7 +75,7 @@ class HardwareTemperatureReader(threading.Thread):
         return readings
 
     def write_temperatures_to_db(self, readings):
-        timestamp = datetime.datetime.now()
+        timestamp = datetime.now()
 
         for device, channel_dict in readings.items():
             for name, value in channel_dict.items():
@@ -95,12 +97,12 @@ class HardwareTemperatureReader(threading.Thread):
 
         while not self._stop_event.is_set():
             try:
-                readings = self.reader.read_temperatures()
-                self.reader.write_temperatures_to_db(readings)
+                readings = self.read_temperatures()
+                self.write_temperatures_to_db(readings)
             except Exception as e:
                 print("[HardwareReadoutThread] ERROR during read/write:", e)
 
             # Sleep with interrupt support
             self._stop_event.wait(self.interval)
 
-        print("[HardwareReadoutThread] Stopped."
+        print("[HardwareReadoutThread] Stopped.")
