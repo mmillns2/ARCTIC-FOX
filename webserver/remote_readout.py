@@ -32,7 +32,7 @@ channel_names = [
 ]
 
 class DBReader(threading.Thread):
-    def __init__(self, sql, plot_queue, channel_names, interval=2.0):
+    def __init__(self, sql, plot_queue, channel_names=channel_names, interval=2.0):
         super().__init__(daemon=True)
 
         self.sql = sql

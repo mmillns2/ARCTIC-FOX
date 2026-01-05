@@ -2,6 +2,7 @@ from controller_server import DeviceControllerServer
 from remote_readout import plot_data, DBReader
 from device import get_channels_for_device
 from flask import Flask, render_template, request, jsonify, Response
+from sql import SQL
 
 import matplotlib.pyplot as plt
 import io
