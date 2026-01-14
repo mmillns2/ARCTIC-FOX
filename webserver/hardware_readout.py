@@ -11,7 +11,7 @@ from lakeshore372device import LakeShore372Device
 
 from sql import SQL 
 
-from controller import hardware_lock
+from controller_client import hardware_lock
 
 class HardwareTemperatureReader(threading.Thread):
     """
