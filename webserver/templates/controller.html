@@ -56,8 +56,9 @@
     <div class="nav-top">
       <h2>Controller</h2>
       <nav>
+        <a href="/algorithm">Algorithm</a>
+        <a href="/interactive">Display (interactive plot)</a>
         <a href="/display">Display (live plot)</a>
-        <a href="/controller">Controller</a>
         <a href="/display/CTC100A">CTC100A</a>
         <a href="/display/CTC100B">CTC100B</a>
         <a href="/display/Lakeshore372">Lakeshore 372</a>
@@ -69,10 +70,12 @@
   <div class="container">
     {% if devices %}
       {% for dev_name, info in devices.items() %}
+      {% if "224" not in dev_name %}
         <div class="device" id="device-{{ dev_name }}">
           <h3>{{ dev_name }}</h3>
 
           {% for channel, ch_type in info.channels.items() %}
+          {% if "AIO" not in channel %}
             <div class="channel" id="{{ dev_name }}-{{ channel }}">
               <div style="margin-bottom:6px;"><strong>{{ channel }}</strong> — {{ ch_type }}</div>
 
@@ -137,8 +140,10 @@
 
               <hr>
             </div>
+          {% endif %}
           {% endfor %}
         </div>
+      {% endif %}
       {% endfor %}
 
     {% else %}
@@ -161,88 +166,86 @@ function attachTypingListeners() {
 
 window.addEventListener("DOMContentLoaded", attachTypingListeners);
 
-
-
-  async function postJSON(url, body) {
+async function postJSON(url, body) {
     const res = await fetch(url, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(body)
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
     });
-    if (!res.ok) {
-      console.error("Request failed:", res.status, await res.text());
-    }
+    if (!res.ok) console.error("Request failed:", res.status, await res.text());
     return res.json().catch(()=>{});
-  }
+}
 
-  function setSwitch(device, channel) {
+// Control functions (unchanged)
+function setSwitch(device, channel) {
     const el = document.getElementById(`${device}-${channel}-val`);
     const value = parseFloat(el.value);
     if (isNaN(value)) { alert("Enter a number"); return; }
     postJSON('/api/set_switch_voltage', {device, channel, value});
     document.getElementById(`${device}-${channel}-off`).className = 'on';
-  }
+}
 
-  function turnOffSwitch(device, channel) {
+function turnOffSwitch(device, channel) {
     postJSON('/api/turn_off_switch', {device, channel});
     document.getElementById(`${device}-${channel}-off`).className = 'off';
-  }
+}
 
-  function setHeater(device, channel) {
+function setHeater(device, channel) {
     const el = document.getElementById(`${device}-${channel}-val`);
     const value = parseFloat(el.value);
     if (isNaN(value)) { alert("Enter a number"); return; }
     postJSON('/api/set_heater_temp', {device, channel, value});
     document.getElementById(`${device}-${channel}-off`).className = 'on';
-  }
+}
 
-  function turnOffHeater(device, channel) {
+function turnOffHeater(device, channel) {
     postJSON('/api/turn_off_heater', {device, channel});
     document.getElementById(`${device}-${channel}-off`).className = 'off';
-  }
+}
 
-  function setStill(device, channel) {
+function setStill(device, channel) {
     const el = document.getElementById(`${device}-${channel}-val`);
     const value = parseFloat(el.value);
     if (isNaN(value)) { alert("Enter a number"); return; }
     postJSON('/api/set_still_percentage', {device, channel, value});
     document.getElementById(`${device}-${channel}-off`).className = 'on';
-  }
+}
 
-  function turnOffStill(device, channel) {
+function turnOffStill(device, channel) {
     postJSON('/api/turn_off_still', {device, channel});
     document.getElementById(`${device}-${channel}-off`).className = 'off';
-  }
+}
 
-  function refreshStates() {
+// ---- New/Improved refreshStates ----
+function refreshStates() {
     fetch("/api/controller_state")
-      .then(res => res.json())
-      .then(data => {
+        .then(res => res.json())
+        .then(data => {
             // Update input fields ONLY if user is not typing
             for (const key in data.values) {
                 const [device, channel] = key.split("::");
-                const id = `${device}-${channel}-val`;
-                const el = document.getElementById(id);
-
+                const el = document.getElementById(`${device}-${channel}-val`);
                 if (!el) continue;
-
-                // Skip update while user is typing
-                if (typing[id]) continue;
-
-                el.value = data.values[key] ?? "";
+                if (!typing[el.id]) el.value = data.values[key] ?? "";
             }
 
-          // Update ON/OFF button colors
-          for (const key in data.states) {
-              const [device, channel] = key.split("::");
-              const btn = document.getElementById(`${device}-${channel}-off`);
-              if (btn) btn.className = data.states[key];
-          }
-      });
-  }
+            // Update ON/OFF button classes
+            for (const key in data.states) {
+                const [device, channel] = key.split("::");
+                const btn = document.getElementById(`${device}-${channel}-off`);
+                if (!btn) continue;
+                const state = data.states[key]; // expected 'on' or 'off'
+                btn.className = state;
 
-  // Run every second
-  setInterval(refreshStates, 1000);
+                // Optional: dynamically update text
+                btn.textContent = (state === 'on') ? 'Turn Off' : 'Turn Off';
+            }
+        })
+        .catch(err => console.error("Failed to fetch controller state:", err));
+}
+
+// Poll every second
+setInterval(refreshStates, 1000);
 </script>
 
 </body>
