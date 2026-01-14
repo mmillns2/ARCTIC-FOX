@@ -1,0 +1,356 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ARCTIC FOX — Algorithm</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #fafafa;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    background: white;
+    padding: 10px 15px;
+    border-bottom: 1px solid #ccc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+nav a {
+    margin-left: 10px;
+    text-decoration: none;
+    color: #004;
+    font-weight: 600;
+}
+
+.container {
+    padding: 15px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.panel {
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 12px;
+    width: 360px;
+    background: white;
+}
+
+.panel h3 {
+    margin-top: 0;
+    text-align: center;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.label {
+    width: 170px;
+    font-weight: 600;
+}
+
+input[type="number"] {
+    width: 90px;
+    padding: 4px;
+}
+
+button {
+    padding: 5px 8px;
+    cursor: pointer;
+}
+
+button.set-btn.not-set { background: lightcoral; }
+button.set-btn.set { background: lightgreen; }
+
+#startStopBtn.on { background: lightgreen; }
+#startStopBtn.off { background: lightcoral; }
+
+#stateBox {
+    margin-top: 10px;
+    padding: 8px;
+    border: 1px solid #aaa;
+    background: #f5f5f5;
+    font-weight: bold;
+    text-align: center;
+}
+
+#progressBar {
+    margin-top: 5px;
+    height: 18px;
+    background: #eee;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+#progressBarInner {
+    height: 100%;
+    width: 0%;
+    background: lightgreen;
+}
+</style>
+</head>
+
+<body>
+<header>
+  <div>
+    <h2>Algorithm</h2>
+    <nav>
+      <a href="/controller">Controller</a>
+      <a href="/interactive">Interactive</a>
+      <a href="/display">Live Plot</a>
+    </nav>
+  </div>
+</header>
+
+<div class="container">
+
+<!-- ================= TIMINGS A ================= -->
+<div class="panel">
+<h3>Timings A (seconds)</h3>
+{% set timings = [
+  ("t_switches_off", "Switches off"),
+  ("t_heaters_on", "Heaters on"),
+  ("t_switch_on", "Switch on"),
+  ("t_between_sides", "Between sides")
+] %}
+{% for key, label in timings %}
+<div class="row">
+  <span class="label">{{ label }}</span>
+  <input id="A-{{ key }}" type="number" value="{{ defaults.A | attr(key) }}">
+  <button id="A-{{ key }}-set" class="set-btn not-set"
+          onclick="setVal('A','{{ key }}')">Set</button>
+  <button onclick="resetVal('A','{{ key }}', {{ defaults.A | attr(key) }})">
+    Default
+  </button>
+</div>
+{% endfor %}
+</div>
+
+<!-- ================= TIMINGS B ================= -->
+<div class="panel">
+<h3>Timings B (seconds)</h3>
+{% for key, label in timings %}
+<div class="row">
+  <span class="label">{{ label }}</span>
+  <input id="B-{{ key }}" type="number" value="{{ defaults.B | attr(key) }}">
+  <button id="B-{{ key }}-set" class="set-btn not-set"
+          onclick="setVal('B','{{ key }}')">Set</button>
+  <button onclick="resetVal('B','{{ key }}', {{ defaults.B | attr(key) }})">
+    Default
+  </button>
+</div>
+{% endfor %}
+</div>
+
+<!-- ================= HEATERS A ================= -->
+<div class="panel">
+<h3>Heater Temperatures A (K)</h3>
+{% set heaters = [
+  ("heater_3puheat", "3puheat"),
+  ("heater_4puheat", "4puheat")
+] %}
+{% for key, label in heaters %}
+<div class="row">
+  <span class="label">{{ label }}</span>
+  <input id="A-{{ key }}" type="number" step="0.1"
+         value="{{ defaults.A | attr(key) }}">
+  <button id="A-{{ key }}-set" class="set-btn not-set"
+          onclick="setVal('A','{{ key }}')">Set</button>
+  <button onclick="resetVal('A','{{ key }}', {{ defaults.A | attr(key) }})">
+    Default
+  </button>
+</div>
+{% endfor %}
+</div>
+
+<!-- ================= HEATERS B ================= -->
+<div class="panel">
+<h3>Heater Temperatures B (K)</h3>
+{% for key, label in heaters %}
+<div class="row">
+  <span class="label">{{ label }}</span>
+  <input id="B-{{ key }}" type="number" step="0.1"
+         value="{{ defaults.B | attr(key) }}">
+  <button id="B-{{ key }}-set" class="set-btn not-set"
+          onclick="setVal('B','{{ key }}')">Set</button>
+  <button onclick="resetVal('B','{{ key }}', {{ defaults.B | attr(key) }})">
+    Default
+  </button>
+</div>
+{% endfor %}
+</div>
+
+<!-- ================= SWITCHES A ================= -->
+<div class="panel">
+<h3>Switch Voltages A (V)</h3>
+{% set switches = [
+  ("switch_3swheat", "3swheat"),
+  ("switch_4swheat", "4swheat")
+] %}
+{% for key, label in switches %}
+<div class="row">
+  <span class="label">{{ label }}</span>
+  <input id="A-{{ key }}" type="number" step="0.01"
+         value="{{ defaults.A | attr(key) }}">
+  <button id="A-{{ key }}-set" class="set-btn not-set"
+          onclick="setVal('A','{{ key }}')">Set</button>
+  <button onclick="resetVal('A','{{ key }}', {{ defaults.A | attr(key) }})">
+    Default
+  </button>
+</div>
+{% endfor %}
+</div>
+
+<!-- ================= SWITCHES B ================= -->
+<div class="panel">
+<h3>Switch Voltages B (V)</h3>
+{% for key, label in switches %}
+<div class="row">
+  <span class="label">{{ label }}</span>
+  <input id="B-{{ key }}" type="number" step="0.01"
+         value="{{ defaults.B | attr(key) }}">
+  <button id="B-{{ key }}-set" class="set-btn not-set"
+          onclick="setVal('B','{{ key }}')">Set</button>
+  <button onclick="resetVal('B','{{ key }}', {{ defaults.B | attr(key) }})">
+    Default
+  </button>
+</div>
+{% endfor %}
+</div>
+
+<!-- ================= PRECOOLING ================= -->
+<div class="panel">
+<h3>Precooling</h3>
+
+<div class="row">
+  <span class="label">Initial pre-cool (K)</span>
+  <input id="initialPrecoolValue" type="number" value="50">
+  <button id="initialPrecool-set" class="set-btn not-set"
+          onclick="setInitialPrecool()">Set</button>
+  <button onclick="resetInitialPrecool()">Default</button>
+</div>
+
+<div class="row">
+  <span class="label">Pre-cycle cool (V)</span>
+  <input id="preCycleCoolValue" type="number" value="7">
+  <button id="preCycleCool-set" class="set-btn not-set"
+          onclick="setPreCycleCool()">Set</button>
+  <button onclick="resetPreCycleCool()">Default</button>
+</div>
+</div>
+
+<!-- ================= CONTROL ================= -->
+<div class="panel">
+<h3>Control</h3>
+
+<button id="startStopBtn" class="off" onclick="toggleAlgorithm()">
+  Start Algorithm
+</button>
+
+<div id="stateBox">Idle</div>
+<div id="progressBar">
+  <div id="progressBarInner"></div>
+</div>
+</div>
+
+</div>
+
+<script>
+async function postJSON(url, body={}) {
+  const r = await fetch(url, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(body)
+  });
+  return r.json().catch(()=>{});
+}
+
+function markSet(id) {
+  const btn = document.getElementById(id);
+  btn.classList.remove("not-set");
+  btn.classList.add("set");
+}
+
+function markNotSet(id) {
+  const btn = document.getElementById(id);
+  btn.classList.remove("set");
+  btn.classList.add("not-set");
+}
+
+function setVal(side, key) {
+  const el = document.getElementById(`${side}-${key}`);
+  postJSON("/api/algorithm/config", {
+    side, key, value: parseFloat(el.value)
+  }).then(()=>markSet(`${side}-${key}-set`));
+}
+
+function resetVal(side, key, def) {
+  document.getElementById(`${side}-${key}`).value = def;
+  setVal(side, key);
+}
+
+/* ---------- PRECOOLING (mutually exclusive) ---------- */
+
+function setInitialPrecool() {
+  postJSON("/api/algorithm/initial_precool", {
+    value: parseFloat(document.getElementById("initialPrecoolValue").value)
+  }).then(()=>{
+    markSet("initialPrecool-set");
+    markNotSet("preCycleCool-set");
+  });
+}
+
+function setPreCycleCool() {
+  postJSON("/api/algorithm/pre_cycle_cool", {
+    value: parseFloat(document.getElementById("preCycleCoolValue").value)
+  }).then(()=>{
+    markSet("preCycleCool-set");
+    markNotSet("initialPrecool-set");
+  });
+}
+
+function resetInitialPrecool() {
+  document.getElementById("initialPrecoolValue").value = 50;
+  setInitialPrecool();
+}
+
+function resetPreCycleCool() {
+  document.getElementById("preCycleCoolValue").value = 7;
+  setPreCycleCool();
+}
+
+/* ---------- CONTROL ---------- */
+
+async function toggleAlgorithm() {
+  const s = await fetch("/api/algorithm/status").then(r=>r.json());
+  await postJSON(s.running ? "/api/algorithm/stop" : "/api/algorithm/start");
+}
+
+setInterval(async ()=>{
+  const s = await fetch("/api/algorithm/status").then(r=>r.json());
+  document.getElementById("startStopBtn").textContent =
+    s.running ? "Stop Algorithm" : "Start Algorithm";
+  document.getElementById("startStopBtn").className =
+    s.running ? "on" : "off";
+  document.getElementById("stateBox").textContent = s.state;
+  document.getElementById("progressBarInner").style.width =
+    `${(s.elapsed / s.total) * 100}%`;
+}, 1000);
+</script>
+
+</body>
+</html>
+
