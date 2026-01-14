@@ -1,0 +1,252 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ARCTIC FOX — Controller</title>
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #fafafa;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    header {
+        background: white;
+        padding: 10px 15px;
+        border-bottom: 1px solid #ccc;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    nav a {
+        margin-left: 10px;
+        text-decoration: none;
+        color: #004;
+        font-weight: 600;
+    }
+
+    .content {
+        flex: 1;
+        padding: 10px;
+        box-sizing: border-box;
+    }
+
+    .container { display:flex; gap: 20px; align-items:flex-start; flex-wrap: wrap; }
+    .device { border: 1px solid #ddd; padding: 12px; width: 320px; border-radius:6px; }
+    .device h3 { margin: 6px 0 10px 0; text-align:center; }
+
+    .row { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
+    input[type="number"], input[type="text"] { padding:6px; width: 120px; }
+    button { padding:6px 10px; cursor:pointer; }
+    .on { background-color: lightgreen; }
+    .off { background-color: lightcoral; }
+
+    .label { font-weight:600; width: 120px; display:inline-block; }
+    hr { border: 0; border-top: 1px solid #eee; margin: 6px 0; }
+</style>
+
+</head>
+<body>
+  <header>
+    <div class="nav-top">
+      <h2>Controller</h2>
+      <nav>
+        <a href="/algorithm">Algorithm</a>
+        <a href="/interactive">Display (interactive plot)</a>
+        <a href="/display">Display (live plot)</a>
+        <a href="/display/CTC100A">CTC100A</a>
+        <a href="/display/CTC100B">CTC100B</a>
+        <a href="/display/Lakeshore372">Lakeshore 372</a>
+        <a href="/display/Lakeshore224">Lakeshore 224</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+    {% if devices %}
+      {% for dev_name, info in devices.items() %}
+      {% if "224" not in dev_name %}
+        <div class="device" id="device-{{ dev_name }}">
+          <h3>{{ dev_name }}</h3>
+
+          {% for channel, ch_type in info.channels.items() %}
+          {% if "AIO" not in channel %}
+            <div class="channel" id="{{ dev_name }}-{{ channel }}">
+              <div style="margin-bottom:6px;"><strong>{{ channel }}</strong> — {{ ch_type }}</div>
+
+              {# ------------------ SWITCH CHANNEL ------------------ #}
+              {% if ch_type == "switch" %}
+                <div class="row">
+                  <input type="number"
+                    step="0.01"
+                    id="{{ dev_name }}-{{ channel }}-val"
+                    value="{{ last_values.get((dev_name, channel)) or '' }}"
+                    placeholder="Voltage (V)">
+                  <button onclick="setSwitch('{{ dev_name }}','{{ channel }}')">Set Voltage</button>
+                </div>
+
+                <div class="row">
+                  <button id="{{ dev_name }}-{{ channel }}-off"
+                          class="{{ last_states.get((dev_name, channel), 'off') }}"
+                          onclick="turnOffSwitch('{{ dev_name }}','{{ channel }}')">
+                    Turn Off
+                  </button>
+                </div>
+
+              {# ------------------ HEATER CHANNEL ------------------ #}
+              {% elif ch_type == "heater" %}
+                <div class="row">
+                  <input type="number"
+                    step="0.01"
+                    placeholder="Temperature (K)"
+                    id="{{ dev_name }}-{{ channel }}-val"
+                    value="{{ last_values.get((dev_name, channel)) or '' }}">
+                  <button onclick="setHeater('{{ dev_name }}','{{ channel }}')">Set Temp PID</button>
+                </div>
+
+                <div class="row">
+                  <button id="{{ dev_name }}-{{ channel }}-off"
+                          class="{{ last_states.get((dev_name, channel), 'off') }}"
+                          onclick="turnOffHeater('{{ dev_name }}','{{ channel }}')">
+                    Turn Off
+                  </button>
+                </div>
+
+              {# ------------------ STILL HEATER CHANNEL ------------------ #}
+              {% elif ch_type == "still_heater" %}
+                <div class="row">
+                  <input type="number"
+                    step="0.1"
+                    placeholder="% of max"
+                    id="{{ dev_name }}-{{ channel }}-val"
+                    value="{{ last_values.get((dev_name, channel)) or '' }}">
+                  <button onclick="setStill('{{ dev_name }}','{{ channel }}')">Set Value</button>
+                </div>
+
+                <div class="row">
+                  <button id="{{ dev_name }}-{{ channel }}-off"
+                          class="{{ last_states.get((dev_name, channel), 'off') }}"
+                          onclick="turnOffStill('{{ dev_name }}','{{ channel }}')">
+                    Turn Off
+                  </button>
+                </div>
+
+              {% endif %}
+
+              <hr>
+            </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+      {% endfor %}
+
+    {% else %}
+      <div>
+        <p>No devices found. Ensure hardware is connected.</p>
+      </div>
+    {% endif %}
+  </div>
+
+<script>
+const typing = {};  // tracks fields currently being edited
+
+function attachTypingListeners() {
+    const inputs = document.querySelectorAll("input[type=number], input[type=text]");
+    inputs.forEach(inp => {
+        inp.addEventListener("focus", () => typing[inp.id] = true);
+        inp.addEventListener("blur", () => typing[inp.id] = false);
+    });
+}
+
+window.addEventListener("DOMContentLoaded", attachTypingListeners);
+
+async function postJSON(url, body) {
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+    });
+    if (!res.ok) console.error("Request failed:", res.status, await res.text());
+    return res.json().catch(()=>{});
+}
+
+// Control functions (unchanged)
+function setSwitch(device, channel) {
+    const el = document.getElementById(`${device}-${channel}-val`);
+    const value = parseFloat(el.value);
+    if (isNaN(value)) { alert("Enter a number"); return; }
+    postJSON('/api/set_switch_voltage', {device, channel, value});
+    document.getElementById(`${device}-${channel}-off`).className = 'on';
+}
+
+function turnOffSwitch(device, channel) {
+    postJSON('/api/turn_off_switch', {device, channel});
+    document.getElementById(`${device}-${channel}-off`).className = 'off';
+}
+
+function setHeater(device, channel) {
+    const el = document.getElementById(`${device}-${channel}-val`);
+    const value = parseFloat(el.value);
+    if (isNaN(value)) { alert("Enter a number"); return; }
+    postJSON('/api/set_heater_temp', {device, channel, value});
+    document.getElementById(`${device}-${channel}-off`).className = 'on';
+}
+
+function turnOffHeater(device, channel) {
+    postJSON('/api/turn_off_heater', {device, channel});
+    document.getElementById(`${device}-${channel}-off`).className = 'off';
+}
+
+function setStill(device, channel) {
+    const el = document.getElementById(`${device}-${channel}-val`);
+    const value = parseFloat(el.value);
+    if (isNaN(value)) { alert("Enter a number"); return; }
+    postJSON('/api/set_still_percentage', {device, channel, value});
+    document.getElementById(`${device}-${channel}-off`).className = 'on';
+}
+
+function turnOffStill(device, channel) {
+    postJSON('/api/turn_off_still', {device, channel});
+    document.getElementById(`${device}-${channel}-off`).className = 'off';
+}
+
+// ---- New/Improved refreshStates ----
+function refreshStates() {
+    fetch("/api/controller_state")
+        .then(res => res.json())
+        .then(data => {
+            // Update input fields ONLY if user is not typing
+            for (const key in data.values) {
+                const [device, channel] = key.split("::");
+                const el = document.getElementById(`${device}-${channel}-val`);
+                if (!el) continue;
+                if (!typing[el.id]) el.value = data.values[key] ?? "";
+            }
+
+            // Update ON/OFF button classes
+            for (const key in data.states) {
+                const [device, channel] = key.split("::");
+                const btn = document.getElementById(`${device}-${channel}-off`);
+                if (!btn) continue;
+                const state = data.states[key]; // expected 'on' or 'off'
+                btn.className = state;
+
+                // Optional: dynamically update text
+                btn.textContent = (state === 'on') ? 'Turn Off' : 'Turn Off';
+            }
+        })
+        .catch(err => console.error("Failed to fetch controller state:", err));
+}
+
+// Poll every second
+setInterval(refreshStates, 1000);
+</script>
+
+</body>
+</html>

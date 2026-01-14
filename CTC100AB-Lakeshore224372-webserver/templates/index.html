@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Control Panel + Live Plot</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; gap: 40px; }
+        .device { border: 1px solid #ccc; padding: 10px; width: 250px; }
+        .row { display: flex; gap: 5px; margin-bottom: 8px; }
+        .on  { background-color: lightgreen; }
+        .off { background-color: lightcoral; }
+    </style>
+</head>
+<body>
+
+    <!-- Real-time Plot -->
+    <div>
+        <h2>Live Plot</h2>
+        <canvas id="chart" width="600" height="400"></canvas>
+    </div>
+
+    <!-- Control Panel -->
+    <div>
+        <h2>Control Panel</h2>
+
+        <!-- Switch Widget -->
+        <div class="device">
+            <h3>CTC100A – Switch 4swheat</h3>
+
+            <div class="row">
+                <input id="sw_voltage" placeholder="Voltage (V)">
+                <button onclick="setSwitch('CTC100A','4swheat')">Set Voltage</button>
+            </div>
+
+            <button id="sw_off" class="off" onclick="turnOffSwitch('CTC100A','4swheat')">
+                Turn Off
+            </button>
+        </div>
+
+        <!-- Heater Widget -->
+        <div class="device">
+            <h3>CTC100A – Heater 4puheat</h3>
+
+            <div class="row">
+                <input id="heater_temp" placeholder="Temperature (K)">
+                <button onclick="setHeater('CTC100A','4puheat')">Set Temp</button>
+            </div>
+
+            <button id="heater_off" class="off" onclick="turnOffHeater('CTC100A','4puheat')">
+                Turn Off
+            </button>
+        </div>
+
+        <!-- Still Heater -->
+        <div class="device">
+            <h3>Lakeshore372 – Still Heater</h3>
+
+            <div class="row">
+                <input id="still_pct" placeholder="% max voltage">
+                <button onclick="setStill('Lakeshore372','still')">Set Value</button>
+            </div>
+
+            <button id="still_off" class="off" onclick="turnOffStill('Lakeshore372','still')">
+                Turn Off
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // ---- PLOT ----
+        const ctx = document.getElementById("chart");
+        const chart = new Chart(ctx, {
+            type: "line",
+            data: { labels: [], datasets: [{ data: [] }] },
+            options: { animation: false }
+        });
+
+        setInterval(async () => {
+            const d = await fetch("/data").then(r => r.json());
+            chart.data.labels = d.x;
+            chart.data.datasets[0].data = d.y;
+            chart.update();
+        }, 500);
+
+        // ---- CONTROL PANEL FUNCTIONS ----
+        async function post(url, body) {
+            await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            });
+        }
+
+        function setSwitch(dev, ch) {
+            post("/set_switch_voltage", {
+                device: dev,
+                channel: ch,
+                value: parseFloat(document.getElementById("sw_voltage").value)
+            });
+            document.getElementById("sw_off").className = "on";
+        }
+
+        function turnOffSwitch(dev, ch) {
+            post("/turn_off_switch", { device: dev, channel: ch });
+            document.getElementById("sw_off").className = "off";
+        }
+
+        function setHeater(dev, ch) {
+            post("/set_heater_temp", {
+                device: dev,
+                channel: ch,
+                value: parseFloat(document.getElementById("heater_temp").value)
+            });
+            document.getElementById("heater_off").className = "on";
+        }
+
+        function turnOffHeater(dev, ch) {
+            post("/turn_off_heater", { device: dev, channel: ch });
+            document.getElementById("heater_off").className = "off";
+        }
+
+        function setStill(dev, ch) {
+            post("/set_still_percentage", {
+                device: dev,
+                channel: ch,
+                value: parseFloat(document.getElementById("still_pct").value)
+            });
+            document.getElementById("still_off").className = "on";
+        }
+
+        function turnOffStill(dev, ch) {
+            post("/turn_off_still", { device: dev, channel: ch });
+            document.getElementById("still_off").className = "off";
+        }
+    </script>
+
+</body>
+</html>
+

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ARCTIC FOX – Interactive</title>
+
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+
+  <style>
+    #plot-container {
+      flex: 1;
+      border: 3px solid #ccc;
+      border-radius: 6px;
+      background: white;
+      padding: 8px;
+      box-sizing: border-box;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    #controls {
+      display: flex;
+      flex-direction: row;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .device-panel {
+        border: 1px solid #ddd;
+        padding: 10px;
+        border-radius: 6px;
+        background: white;
+        min-width: 220px;
+    }
+
+    .device-panel h4 {
+        margin: 4px 0 8px 0;
+        text-align: center;
+    }
+
+    .temp-item {
+        margin-bottom: 4px;
+    }
+
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #fafafa;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    header {
+        background: white;
+        padding: 10px 15px;
+        border-bottom: 1px solid #ccc;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    nav a {
+        margin-left: 10px;
+        text-decoration: none;
+        color: #004;
+        font-weight: 600;
+    }
+
+    .content {
+        flex: 1;
+        padding: 10px;
+        box-sizing: border-box;
+    }
+
+    .container { display:flex; gap: 20px; align-items:flex-start; flex-wrap: wrap; }
+    .device { border: 1px solid #ddd; padding: 12px; width: 320px; border-radius:6px; }
+    .device h3 { margin: 6px 0 10px 0; text-align:center; }
+
+    .row { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
+    input[type="number"], input[type="text"] { padding:6px; width: 120px; }
+    button { padding:6px 10px; cursor:pointer; }
+    .on { background-color: lightgreen; }
+    .off { background-color: lightcoral; }
+
+    .label { font-weight:600; width: 120px; display:inline-block; }
+    hr { border: 0; border-top: 1px solid #eee; margin: 6px 0; }
+</style>
+
+  </style>
+</head>
+<body>
+
+</head>
+<body>
+  <header>
+    <div class="nav-top">
+      <h2>Interactive Temperature Viewer</h2>
+      <nav>
+        <a href="/controller">Controller</a>
+        <a href="/algorithm">Algorithm</a>
+        <a href="/display">Display (live plot)</a>
+        <a href="/display/CTC100A">CTC100A</a>
+        <a href="/display/CTC100B">CTC100B</a>
+        <a href="/display/Lakeshore372">Lakeshore 372</a>
+        <a href="/display/Lakeshore224">Lakeshore 224</a>
+      </nav>
+    </div>
+  </header>
+
+<div id="top-bar">
+  <label>
+    Time window (min):
+    <input id="windowInput" type="number" min="0" step="0.1" value="10">
+    <span>(0 = all)</span>
+  </label>
+</div>
+
+<div id="controls"></div>
+
+<div id="plot-container">
+  <div id="plot"></div>
+</div>
+
+<script>
+let snapshot = {};
+let plotDiv = document.getElementById("plot");
+
+/* -----------------------------
+   Fetch backend data
+----------------------------- */
+async function fetchData() {
+  const r = await fetch("/api/plotly_data");
+  snapshot = await r.json();
+}
+
+/* -----------------------------
+   Build device panels (ALL OFF)
+----------------------------- */
+function buildDevicePanels() {
+  let controls = document.getElementById("controls");
+  controls.innerHTML = "";
+
+  for (const [device, devData] of Object.entries(snapshot)) {
+    let panel = document.createElement("div");
+    panel.className = "device-panel";
+
+    let title = document.createElement("h4");
+    title.textContent = device;
+    panel.appendChild(title);
+
+    for (const ch of Object.keys(devData)) {
+      if (ch === "times") continue;
+
+      let div = document.createElement("div");
+      div.className = "temp-item";
+
+      let cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.dataset.device = device;
+      cb.dataset.channel = ch;
+      cb.checked = false;
+      cb.onchange = updatePlot;
+
+      let label = document.createElement("label");
+      label.appendChild(cb);
+      label.append(" " + ch);
+
+      div.appendChild(label);
+      panel.appendChild(div);
+    }
+
+    controls.appendChild(panel);
+  }
+}
+
+/* -----------------------------
+   Gradient calculation (30 s)
+----------------------------- */
+function computeGradient(timesMin, ys) {
+  let tNow = timesMin[timesMin.length - 1];
+  for (let i = timesMin.length - 2; i >= 0; i--) {
+    let dt = tNow - timesMin[i];
+    if (dt >= 0.5) { // 30 seconds
+      return (ys[ys.length - 1] - ys[i]) / dt * 1000.0;
+    }
+  }
+  return null;
+}
+
+/* -----------------------------
+   Update plot
+----------------------------- */
+function updatePlot() {
+  let traces = [];
+
+  let windowVal = parseFloat(document.getElementById("windowInput").value);
+  let windowMin = (!windowVal || windowVal <= 0) ? null : windowVal;
+
+  let checkboxes = document.querySelectorAll("input[type=checkbox]:checked");
+
+  checkboxes.forEach(cb => {
+    let device = cb.dataset.device;
+    let ch = cb.dataset.channel;
+
+    let devData = snapshot[device];
+    if (!devData) return;
+
+    let times = devData.times.map(t => new Date(t));
+    let ys = devData[ch];
+    if (!ys || times.length === 0) return;
+
+    let t0 = times[0];
+    let tMin = times.map(t => (t - t0) / 60000.0);
+    let tMax = tMin[tMin.length - 1];
+
+    let tx = [];
+    let ty = [];
+
+    for (let i = 0; i < ys.length; i++) {
+      if (ys[i] <= -9) continue;
+      if (windowMin !== null && tMin[i] < tMax - windowMin) continue;
+
+      tx.push(tMin[i]);
+      ty.push(ys[i]);
+    }
+
+    if (tx.length < 2) return;
+
+    let current = ty[ty.length - 1];
+    let grad = computeGradient(tx, ty);
+
+    let label = `${ch} ${current.toFixed(3)}K`;
+    if (grad !== null) {
+      label += `<br>${grad.toFixed(1)}mK/min`;
+    }
+
+    traces.push({
+      x: tx,
+      y: ty,
+      mode: "lines",
+      name: label,
+      hovertemplate: "%{y:.3f}K<br>%{x:.2f}min<extra></extra>"
+    });
+  });
+
+  Plotly.react(plotDiv, traces, {
+    autosize: true,
+    showlegend: true,
+    xaxis: { title: "Time (min)" },
+    yaxis: { title: "Temperature (K)" },
+    legend: {
+      borderwidth: 1,
+      itemsizing: "constant"
+    },
+    margin: { r: 260 }
+  });
+}
+
+/* -----------------------------
+   Resize handler
+----------------------------- */
+window.addEventListener("resize", () => {
+  Plotly.Plots.resize(plotDiv);
+});
+
+/* -----------------------------
+   Refresh loop
+----------------------------- */
+async function refresh() {
+  await fetchData();
+  updatePlot();
+}
+
+/* -----------------------------
+   Init
+----------------------------- */
+(async function init() {
+  await fetchData();
+  buildDevicePanels();
+
+  document.getElementById("windowInput").oninput = updatePlot;
+
+  updatePlot();
+  setInterval(refresh, 2000);
+})();
+</script>
+
+</body>
+</html>
+
