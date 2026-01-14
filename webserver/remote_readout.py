@@ -96,6 +96,9 @@ class DBReader(threading.Thread):
                         except:
                             continue
 
+                        if val < -9:
+                            continue
+
                         self.state[dev][clean].append(val)
                         updated_devices.add(dev)
 
