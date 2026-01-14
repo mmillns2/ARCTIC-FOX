@@ -40,7 +40,7 @@ class DBReader(threading.Thread):
         self.plot_queue = plot_queue
         self.interval = interval
 
-        # strip " [K]" suffix
+        # strip " [K]"
         self.clean_names = {name: name.replace(" [K]", "") for name in channel_names}
 
         # maps clean channel name -> device
@@ -51,66 +51,88 @@ class DBReader(threading.Thread):
             if ch != "times"
         }
 
-        # SCID lookup for full names
+        # SCID lookup
         self.scids = {name: sql.getSCID(name) for name in channel_names}
 
         last = sql.lastUpdate()
-        self.last_timestamp = int(last.timestamp()) - 1 if last else 0
+        self.last_timestamp = int(last.timestamp()) if last else 0
 
-        # working internal state (deepcopy)
+        # working state
         self.state = copy.deepcopy(plot_data)
 
+        # last-known values (for forward fill)
+        self.last_values = {
+            (dev, ch): None
+            for dev, chans in plot_data.items()
+            for ch in chans
+            if ch != "times"
+        }
+
     def run(self):
-        print("[DBReader] Starting DB poll thread.")
+        print("[DBReader] Starting DB poll thread (aligned mode).")
 
         while True:
             try:
                 timestamps = self.sql.getSCTimes(self.last_timestamp)
-
                 if not timestamps:
-                    # No new rows, sleep and continue
                     time.sleep(self.interval)
                     continue
 
-                for ts in sorted(timestamps):
-                    rows = self.sql.getSCValues(list(self.scids.values()), ts)
-                    if not rows:
+                # only use last timestamp
+                ts = max(timestamps)
+
+                rows = self.sql.getSCValues(list(self.scids.values()), ts)
+                if not rows:
+                    time.sleep(self.interval)
+                    continue
+
+                record = rows[0]
+                t = record["time"]
+
+                # Track which channels updated this cycle
+                updated = set()
+
+                # Read DB values
+                for i, full_name in enumerate(self.channel_names):
+                    clean = self.clean_names[full_name]
+                    dev = self.device_map.get(clean)
+                    if not dev:
                         continue
 
-                    record = rows[0]
-                    t = record["time"]
+                    raw = record.get(f"value-{i+1}")
+                    try:
+                        val = float(raw)
+                    except:
+                        continue
 
-                    updated_devices = set()
+                    if val < -9:
+                        continue
 
-                    for i, full_name in enumerate(self.channel_names):
+                    self.last_values[(dev, clean)] = val
+                    updated.add((dev, clean))
 
-                        clean = self.clean_names[full_name]
-                        dev = self.device_map.get(clean)
-                        if not dev:
+                # Append aligned values (forward fill)
+                for dev, chans in self.state.items():
+                    if dev == "times":
+                        continue
+
+                    self.state[dev]["times"].append(t)
+
+                    for ch in chans:
+                        if ch == "times":
                             continue
 
-                        raw = record[f"value-{i+1}"]
+                        val = self.last_values[(dev, ch)]
+                        if val is not None:
+                            self.state[dev][ch].append(val)
+                        else:
+                            # still no data yet -> repeat or skip
+                            if self.state[dev][ch]:
+                                self.state[dev][ch].append(self.state[dev][ch][-1])
 
-                        try:
-                            val = float(raw)
-                        except:
-                            continue
-
-                        if val < -9:
-                            continue
-
-                        self.state[dev][clean].append(val)
-                        updated_devices.add(dev)
-
-                    for dev in updated_devices:
-                        self.state[dev]["times"].append(t)
-
-                    #print("plot_data snapshot:", self.state)
-
-                    # push snapshot
-                    self.plot_queue.put(copy.deepcopy(self.state))
-
-                    self.last_timestamp = t
+                # Emit snapshot
+                self.plot_queue.put(copy.deepcopy(self.state))
+                self.last_timestamp = t
 
             except Exception as e:
                 self.sql.db.rollback()
