@@ -418,11 +418,13 @@ def switch_off(device, channel):
     # aio_channel = device.aio_channels[channel]
     IOtype_check = device.get_aio_iotype(channel)
     voltage_check = device.get_aio_voltage(channel)
-    if IOtype_check == 'Set out':
-        if voltage_check > 1:
-            device.set_aio_voltage(channel, 0)
-        else:
-            pass
+    if IOtype_check != 'Set out':
+        device.set_aio_iotype(channel, 'Set out')
+    
+    #if voltage_check > 1:
+    device.set_aio_voltage(channel, 0)
+    #    else:
+    #        pass
         
 def heater_PID_config(device, out_ch, in_ch):
     device.link_heater_to_input(out_ch, in_ch)
