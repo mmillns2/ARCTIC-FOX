@@ -23,7 +23,7 @@ class HardwareTemperatureReader(threading.Thread):
         super().__init__(daemon=True)
         self.devices = devices
         self.sql = sql
-        self.interval = 2.0
+        self.interval = 5.0
         self._stop_event = threading.Event()
 
     def read_temperatures(self):
