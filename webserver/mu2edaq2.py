@@ -11,6 +11,11 @@ import matplotlib.pyplot as plt
 import io
 import queue
 
+from algorithm import Cycle, AlgorithmConfig
+
+algorithm_config = AlgorithmConfig()
+cycle_thread = None
+
 HOST = "127.0.0.1"
 PORT = 8084
 
@@ -34,13 +39,113 @@ def root():
     return """
     <h2>ARCTIC FOX interface</h2>
     <p><a href="/display">Display (live plot)</a></p>
+    <p><a href="/interactive">Display (interactive plot)</a></p>
     <p><a href="/controller">Controller (control panel)</a></p>
+    <p><a href="/algorithm">Algorithm (config panel)</a></p>
     """
 
+# ALGORITHM
+@app.route("/algorithm")
+def algorithm_page():
+    return render_template(
+        "algorithm.html",
+        defaults=algorithm_config
+    )
+
+@app.route("/api/algorithm/config", methods=["POST"])
+def set_algorithm_config():
+    data = request.json
+    side = data["side"]  # "A" or "B"
+    key = data["key"]
+    value = data["value"]
+
+    side_cfg = getattr(algorithm_config, side)
+    setattr(side_cfg, key, value)
+    return jsonify({"status":"ok"})
+
+@app.route("/api/algorithm/status", methods=["GET"])
+def algorithm_status():
+    if cycle_thread and cycle_thread.is_alive():
+        return jsonify(cycle_thread.get_status())
+
+    return jsonify({
+        "running": False,
+        "state": "Idle",
+        "side": None,
+        "elapsed": 0,
+        "total": 1
+    })
+
+@app.route("/api/algorithm/start", methods=["POST"])
+def start_algorithm():
+    global cycle_thread
+    if cycle_thread is None or not cycle_thread.is_alive():
+        cycle_thread = Cycle(controller, algorithm_config, LAST_VALUES, LAST_STATES)
+        cycle_thread.start()
+    return jsonify({"status":"started"})
+
+@app.route("/api/algorithm/stop", methods=["POST"])
+def stop_algorithm():
+    if cycle_thread and cycle_thread.is_alive():
+        cycle_thread.stop()
+    return jsonify({"status":"stopped"})
+
+# PREC0OLING 
+@app.route("/api/algorithm/initial_precool", methods=["POST"])
+def api_initial_precool():
+    data = request.json
+    value = float(data["value"])
+
+    algorithm_config.initial_precool.enabled = True
+    algorithm_config.initial_precool.value = value
+
+    # Turn OFF all switches
+    for dev in ["CTC100A", "CTC100B"]:
+        for ch in ["3swheat", "4swheat"]:
+            controller.turn_off_switch(dev, ch)
+            LAST_VALUES[(dev, ch)] = None
+            LAST_STATES[(dev, ch)] = "off"
+
+    # Set ALL heaters to temperature
+    for dev in ["CTC100A", "CTC100B"]:
+        for ch in ["3puheat", "4puheat"]:
+            controller.set_heater_temperature(dev, ch, value)
+            LAST_VALUES[(dev, ch)] = value
+            LAST_STATES[(dev, ch)] = "on"
+
+    return jsonify(status="enabled")
+
+@app.route("/api/algorithm/pre_cycle_cool", methods=["POST"])
+def api_pre_cycle_cool():
+    data = request.json
+    value = float(data["value"])
+
+    algorithm_config.pre_cycle_cool.enabled = True
+    algorithm_config.pre_cycle_cool.value = value
+
+    # Turn OFF all heaters
+    for dev in ["CTC100A", "CTC100B"]:
+        for ch in ["3puheat", "4puheat"]:
+            controller.turn_off_heater(dev, ch)
+            LAST_VALUES[(dev, ch)] = None
+            LAST_STATES[(dev, ch)] = "off"
+
+    # Turn ON all switches
+    for dev in ["CTC100A", "CTC100B"]:
+        for ch in ["3swheat", "4swheat"]:
+            controller.set_switch_voltage(dev, ch, value)
+            LAST_VALUES[(dev, ch)] = value
+            LAST_STATES[(dev, ch)] = "on"
+
+    return jsonify(status="enabled")
+
+
+# MATPLOTLIB DISPLAY
 @app.route("/display")
 def display():
     return render_template("display.html")
 
+# CONTROLLER 
 @app.route("/controller")
 def controller_page():
     devices_context = {}
@@ -318,9 +423,38 @@ def display_all():
     return render_template("display.html",
                            plots=list(PLOT_MAPPING.keys()))
 
+@app.route("/api/plotly_data")
+def api_plotly_data():
+    update_latest_plot_data()
+    if "latest_plot_snapshot" not in globals():
+        return jsonify({})
+
+    return jsonify(latest_plot_snapshot)
+
+@app.route("/interactive")
+def interactive():
+    return render_template("interactive.html")
+
+'''
+@app.route("/interactive")
+def interactive():
+    # Build device → channels mapping from PLOT_MAPPING
+    devices_context = {}
+
+    for _, (dev, channels) in PLOT_MAPPING.items():
+        devices_context.setdefault(dev, [])
+        for ch in channels:
+            if ch not in devices_context[dev]:
+                devices_context[dev].append(ch)
+
+    return render_template(
+        "interactive.html",
+        devices=devices_context
+    )
+'''
 
 # Run server
 if __name__ == "__main__":
     # run webserver on port 8083
-    app.run(debug=False, host="0.0.0.0", port=8085)
+    app.run(debug=False, host="0.0.0.0", port=8083)
 
