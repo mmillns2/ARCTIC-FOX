@@ -4,7 +4,7 @@ class LakeShore350Device:
     def __init__(self, port, name=None):
         try:
             if Model350 is None:
-                raise ImportError("Lake Shore Model350 driver not available.")
+                raise ImportError("Lake Shore Model 350 driver not available.")
 
             self.device = Model350(com_port=port)
 
@@ -13,6 +13,8 @@ class LakeShore350Device:
             self.name = name
 
             self.input_channels = []
+            self.output_channels = []
+
             self.list_channels()
 
             print(f"Connected to Lake Shore 350 on {port} with input channels {self.input_channels} and output channels {self.output_channels}")
@@ -21,6 +23,9 @@ class LakeShore350Device:
             raise e
 
     def get_input_channels(self):
+        '''
+        Returns input channels.
+        '''
         return self.input_channels
 
     def get_output_channels(self):
@@ -45,15 +50,18 @@ class LakeShore350Device:
             return None
 
     def read_all_channels(self):
+        '''
+        Read out temperature of all channels.
+        '''
         readings = {}
         for channel in self.input_channels:
             readings[channel] = self.get_temperature(channel)
         return readings
 
     def list_channels(self):
-        """
+        '''
         List available input channels on the Lake Shore 350.
 
         Channel names are 'A', 'B', 'C1' - 'C5', 'D1' - 'D5'.
-        """
+        '''
         self.input_channels = ['A', 'B', 'C', 'D'] + [f'D{i}' for i in range(1, 5)]
