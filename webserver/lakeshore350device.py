@@ -58,6 +58,57 @@ class LakeShore350Device:
             readings[channel] = self.get_temperature(channel)
         return readings
 
+    def set_still_voltage(self, percent):
+        '''
+        Apply a voltage to the still using the Lakeshore 350.
+        percent is the proportion of total still power that can be applied.
+        '''
+        pass
+
+    def heat_still_pid(self, temperature, channel="A", output=1, power_range=1):
+        """
+        Heat the still using closed-loop PID temperature control.
+
+        temperature: target temperature in Kelvin
+        channel: input channel used for feedback (e.g. 'A')
+        output: heater output number (1 or 2)
+        power_range: heater range (1=low, 2=medium, 3=high)
+        """
+        try:
+            # Select closed-loop PID mode
+            self.device.write(f"OUTMODE {output},1,{sensor},0")
+
+            # Enable heater output
+            self.device.write(f"RANGE {output},{power_range}")
+
+            # Set temperature setpoint
+            self.device.write(f"SETP {output},{temperature}")
+
+        except Exception as e:
+            print(f"Error enabling PID still heating: {e}")
+
+    def heat_still_manual(self, power_percent, channel="A", output=1, power_range=1):
+        """
+        Heat the still using open-loop manual power control.
+
+        power_percent: heater power in percent (0–100)
+        channel: still sensor (required by OUTMODE but not used for control)
+        output: heater output number (1 or 2)
+        power_range: heater range (1=low, 2=medium, 3=high)
+        """
+        try:
+            # Select manual output mode
+            self.device.write(f"OUTMODE {output},3,{sensor},0")
+
+            # Enable heater output
+            self.device.write(f"RANGE {output},{power_range}")
+
+            # Set manual heater power
+            self.device.write(f"MOUT {output},{power_percent}")
+
+        except Exception as e:
+            print(f"Error enabling manual still heating: {e}")
+
     def list_channels(self):
         '''
         List available input channels on the Lake Shore 350.
