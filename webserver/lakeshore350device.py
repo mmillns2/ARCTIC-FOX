@@ -36,7 +36,7 @@ class LakeShore350Device:
 
     def get_temperature(self, channel):
         '''
-        Read temperature in Kelvin from input channel A–D.
+        Read temperature in Kelvin from input channel A–D(1-5).
         Uses KRDG? query.
         '''
         try:
@@ -62,6 +62,6 @@ class LakeShore350Device:
         '''
         List available input channels on the Lake Shore 350.
 
-        Channel names are 'A', 'B', 'C1' - 'C5', 'D1' - 'D5'.
+        Channel names are 'A', 'B', 'C', 'D', 'D1' - 'D5'.
         '''
         self.input_channels = ['A', 'B', 'C', 'D'] + [f'D{i}' for i in range(1, 5)]
