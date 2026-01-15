@@ -31,7 +31,6 @@ class HardwareTemperatureReader(threading.Thread):
         readings = {}
 
         with hardware_lock:
-            # -------------------- CTC100A --------------------
             if "CTC100A" in d:
                 dev = d["CTC100A"]
                 readings["CTC100A"] = {
@@ -41,7 +40,6 @@ class HardwareTemperatureReader(threading.Thread):
                     "3pumpA [K]":   dev.get_temperature("3pump"),
                 }
 
-            # -------------------- CTC100B --------------------
             if "CTC100B" in d:
                 dev = d["CTC100B"]
                 readings["CTC100B"] = {
@@ -51,7 +49,6 @@ class HardwareTemperatureReader(threading.Thread):
                     "3pumpB [K]":   dev.get_temperature("3pump"),
                 }
 
-            # -------------------- LakeShore 224 --------------------
             if "Lakeshore224" in d:
                 dev = d["Lakeshore224"]
                 readings["Lakeshore224"] = {
@@ -64,12 +61,37 @@ class HardwareTemperatureReader(threading.Thread):
                     "4K [K]": dev.get_temperature("D3"),
                 }
 
-            # -------------------- LakeShore 372 --------------------
             if "Lakeshore372" in d:
                 dev = d["Lakeshore372"]
                 readings["Lakeshore372"] = {
                     "MC [K]":    dev.get_temperature("1"),
                     "Still [K]": dev.get_temperature("A"),
+                }
+
+            if "Lakeshore350" in d:
+                dev = d["Lakeshore350"]
+                readings["Lakeshore350"] = {
+                    "4HePotA [K]": dev.get_temperature("A"),
+                    "3HePotA [K]": dev.get_temperature("B"),
+                    "4HePotB [K]": dev.get_temperature("C"),
+                    "3HePotB [K]": dev.get_temperature("D"),
+                    "Condenser [K]": dev.get_temperature("D1"),
+                    "MC [K]": dev.get_temperature("D2"),
+                    "Still [K]": dev.get_temperature("D3"),
+                    "4K [K]": dev.get_temperature("D4"),
+                }
+
+            if "Lakeshore218" in d:
+                dev = d["Lakeshore218"]
+                readings["Lakeshore218"] = {
+                    "4pumpA [K]":   dev.get_temperature("1"),
+                    "3pumpA [K]":   dev.get_temperature("2"),
+                    "4pumpB [K]":   dev.get_temperature("3"),
+                    "3pumpB [K]":   dev.get_temperature("4"),
+                    "4switchA [K]": dev.get_temperature("5"),
+                    "3switchA [K]": dev.get_temperature("6"),
+                    "4switchB [K]": dev.get_temperature("7"),
+                    "3switchB [K]": dev.get_temperature("8"),
                 }
 
         return readings
