@@ -2,13 +2,13 @@ import threading
 import socket
 import time
 import json
-from cooldown_loop_dilution_v2 import switch_on, switch_off, heater_on, heater_off
+from MX103QP import MX103QP
 from device import get_channels_for_device
 
-# If your real device_lock exists, import it.
+# If real device_lock exists, import it.
 # Otherwise assign a new lock:
 try:
-    from devices.device import device_lock as hardware_lock
+    from device import device_lock as hardware_lock
 except ImportError:
     hardware_lock = threading.Lock()
 
@@ -31,18 +31,18 @@ class DeviceControllerClient(threading.Thread):
             "get_devices": self.get_devices,
         }
 
-    # ---------------- Switch Commands ----------------
+    # Switch Commands 
     def set_switch_voltage(self, device_name, channel, voltage):
         device = self.devices[device_name]
         with hardware_lock:
-            switch_on(device, channel, voltage)
+            device.set_voltage(channel, voltage)
 
     def turn_off_switch(self, device_name, channel, _):
         device = self.devices[device_name]
         with hardware_lock:
-            switch_off(device, channel)
+            device.set_voltage(channel, 0)
 
-    # ---------------- Heater Commands ----------------
+    # Heater Commands 
     def set_heater_temperature(self, device_name, channel, temperature):
         device = self.devices[device_name]
         with hardware_lock:
@@ -62,18 +62,18 @@ class DeviceControllerClient(threading.Thread):
             else:
                 heater_off(device, channel)
 
-    # ---------------- Still Heater ----------------
+    # Still Heater 
     def set_still_percentage(self, device_name, channel, percent):
         device = self.devices[device_name]
         with hardware_lock:
-            device.set_still_voltage(percent)
+            device.heat_still_manual(percent)
 
     def turn_off_still(self, device_name, channel, _):
         device = self.devices[device_name]
         with hardware_lock:
-            device.set_still_voltage(0)
+            device.heat_still_manual(0)
 
-    # ---------------- Device List ----------------
+    #  Device List 
     def get_devices(self, *_ignored):
         result = {}
         for name, dev in self.devices.items():
@@ -83,7 +83,7 @@ class DeviceControllerClient(threading.Thread):
             }
         return json.dumps(result)
 
-    # --------------- Command Dispatch ---------------
+    #  Command Dispatch 
     def handle_cmd(self, cmd_str: str):
         parts = cmd_str.strip().split()
         cmd_func = parts[0]
@@ -109,7 +109,7 @@ class DeviceControllerClient(threading.Thread):
 
         return "0"
 
-    # --------------- Thread Loop ----------------
+    #  Thread Hot Loop 
     def run(self):
         with socket.socket() as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
