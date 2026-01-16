@@ -28,15 +28,20 @@ class TemperaturePID(Thread):
         '''
         try:
             # Get current temperature (ie from lakeshore)
-            temperature = self.temp_reader.get_temperature(self.temp_reader_ch)
+            with self.hardware_lock:
+                temperature = self.temp_reader.get_temperature(self.temp_reader_ch)
 
             while not self.stop_event.is_set():
 
                 # Compute new output from the PID according to the systems current value
                 voltage = self.pid(temperature)
 
-                # Feed the PID output to the system and get its current value
-                temperature = self.power_supply.set_voltage(self.power_supply_ch, voltage)
+                with self.hardware_lock:
+                    # Feed the PID output to the system and get its current value
+                    temperature = self.power_supply.set_voltage(self.power_supply_ch, voltage)
+
+                # Small delay to avoid overloading devices
+                time.sleep(0.1)
                 
         except Exception as e:
             print(f"Fatal error in TemperaturePID: {e}")
