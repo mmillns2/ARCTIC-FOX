@@ -2,8 +2,17 @@ import threading
 import socket
 import time
 import json
+
 from MX103QP import MX103QP
+from GPDX303S import GPDX303S
+
+from Lakeshore350device import LakeShore350Device
+from Lakeshore336device import LakeShore336Device
+from Lakeshore218device import LakeShore218Device
+
 from device import get_channels_for_device
+
+from temperaturePID import TemperaturePID
 
 # If real device_lock exists, import it.
 # Otherwise assign a new lock:
