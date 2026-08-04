@@ -4,7 +4,7 @@ import time
 PORT = "/dev/ttyACM0"   
 
 class MX103QP:
-    def __init__(self, port, timeout=1.0):
+    def __init__(self, port, timeout=1.0, name=None):
         self.ser = serial.Serial(
             port=port,
             baudrate=9600,     # ignored for USB, required for RS232
@@ -14,8 +14,21 @@ class MX103QP:
             timeout=timeout
         )
 
+        self.last_voltage = 0
+        
+        print(f"Connected to MX103QP power supply on {port}")
+
         # Give the PSU time to settle
         time.sleep(0.2)
+        self.all_output_on()
+        time.sleep(0.2)
+
+        '''
+        for i in range(91):
+            volt_out = 9 - i*0.1
+            self.set_voltage(1, volt_out)
+            time.sleep(1800)
+        '''
 
     # Low-level helpers
     def _write(self, cmd: str):
@@ -44,6 +57,7 @@ class MX103QP:
     # Output control
     def set_voltage(self, ch: int, volts: float):
         self._write(f"V{ch} {volts}")
+        #self._write(f"OP{ch} 1")
 
     def set_current(self, ch: int, amps: float):
         self._write(f"I{ch} {amps}")
@@ -54,13 +68,40 @@ class MX103QP:
     def output_off(self, ch: int):
         self._write(f"OP{ch} 0")
 
+    def all_output_on(self):
+        self.output_on(1)
+        self.output_on(2)
+        self.output_on(3)
+        self.output_on(4)
+
+    def all_output_off(self):
+        self.output_off(1)
+        self.output_off(2)
+        self.output_off(3)
+        self.output_off(4)
+
     def output_state(self, ch: int) -> bool:
         return bool(int(self._query(f"OP{ch}?")))
 
     # Readout
-    def read_voltage(self, ch: int) -> float:
+    def get_voltage(self, ch: int) -> float:
         resp = self._query(f"V{ch}O?")
-        return float(resp.replace("V", ""))
+        if resp is None:    
+            return self.last_voltage
+
+        #print(resp)
+        cleaned = resp.replace("V", "")
+        if not cleaned:
+            return self.last_voltage
+
+        try:
+            ret = float(cleaned)
+            #print(ret)
+            self.last_voltage = ret
+        except ValueError as e:
+            print(f"[MX103QP] ERROR: ", e)
+        
+        return self.last_voltage
 
     def read_current(self, ch: int) -> float:
         resp = self._query(f"I{ch}O?")
@@ -68,5 +109,8 @@ class MX103QP:
 
     # Cleanup
     def close(self):
+        self.all_output_off()
         self.ser.close()
 
+    def __del__(self):
+        self.close()
