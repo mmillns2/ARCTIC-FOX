@@ -4,7 +4,7 @@ import time
 PORT = "/dev/ttyUSB0"
 
 class GPDX303S:
-    def __init__(self, port, baudrate=9600, timeout=1.0):
+    def __init__(self, port, baudrate=9600, timeout=1.0, name=None):
         self.ser = serial.Serial(
             port=port,
             baudrate=baudrate,
@@ -14,7 +14,11 @@ class GPDX303S:
             timeout=timeout,
         )
         
+        print(f"Connected to GPDX303S power supply on {port}")
+
         # Give the PSU time to settle
+        time.sleep(0.2)
+        self.output_on()
         time.sleep(0.2)
 
     # Low-level helpers
@@ -75,12 +79,16 @@ class GPDX303S:
         return float(self._query(f"ISET{ch}?").replace('A', ''))
 
     # Read actual output values
-    def read_voltage(self, ch: int) -> float:
+    def get_voltage(self, ch: int) -> float:
         return float(self._query(f"VOUT{ch}?").replace('V', ''))
 
-    def read_current(self, ch: int) -> float:
+    def get_current(self, ch: int) -> float:
         return float(self._query(f"IOUT{ch}?").replace('A', ''))
 
     # Cleanup
     def close(self):
+        self.output_off()
         self.ser.close()
+
+    def __del__(self):
+        self.close()
