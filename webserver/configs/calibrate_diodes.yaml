@@ -1,0 +1,97 @@
+channels:
+  CalibrationPSU [V]:
+    backend: manual
+    voltage:
+      device: MX103QP
+      channel: 1
+    actuator:
+      device: MX103QP
+      channel: 1
+    webserver:
+      controller: True
+      units: V
+      display: False
+
+  50K [K]:
+    backend: readout
+    temperature:
+      device: Lakeshore336
+      channel: D
+    webserver:
+      controller: False
+      display: True
+
+  4K [K]:
+    backend: readout
+    temperature:
+      device: Lakeshore336
+      channel: C
+    webserver:
+      controller: False
+      display: True
+
+  50K [V]:
+    backend: readout_V
+    voltage:
+      device: Lakeshore336
+      channel: D
+
+  4K [V]:
+    backend: readout_V
+    voltage:
+      device: Lakeshore336
+      channel: C
+
+  A1 [V]:
+    backend: readout_V
+    voltage:
+      device: Lakeshore218
+      channel: 1
+
+  A2 [V]:
+    backend: readout_V
+    voltage:
+      device: Lakeshore218
+      channel: 2
+
+  A3 [V]:
+    backend: readout_V
+    voltage:
+      device: Lakeshore218
+      channel: 3
+
+  A4 [V]:
+    backend: readout_V
+    voltage:
+      device: Lakeshore218
+      channel: 4
+
+  A5 [V]:
+    backend: readout_V
+    voltage:
+      device: Lakeshore218
+      channel: 5
+
+  A6 [V]:
+    backend: readout_V
+    voltage:
+      device: Lakeshore218
+      channel: 6
+
+  A7 [V]:
+    backend: readout_V
+    voltage:
+      device: Lakeshore218
+      channel: 7
+
+  A8 [V]:
+    backend: readout_V
+    voltage:
+      device: Lakeshore218
+      channel: 8
+
+  A9 [V]:
+    backend: readout_V
+    voltage:
+      device: Lakeshore336
+      channel: B
