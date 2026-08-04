@@ -1,292 +1,298 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>ARCTIC FOX – Interactive</title>
+<meta charset="utf-8">
+<title>ARCTIC FOX – Interactive</title>
 
-  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
 
-  <style>
-    #plot-container {
-      flex: 1;
-      border: 3px solid #ccc;
-      border-radius: 6px;
-      background: white;
-      padding: 8px;
-      box-sizing: border-box;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    }
+<style>
 
-    #controls {
-      display: flex;
-      flex-direction: row;
-      gap: 16px;
-      flex-wrap: wrap;
-      align-items: flex-start;
-      margin-bottom: 10px;
-    }
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#fafafa;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+}
 
-    .device-panel {
-        border: 1px solid #ddd;
-        padding: 10px;
-        border-radius: 6px;
-        background: white;
-        min-width: 220px;
-    }
+header{
+  background:white;
+  padding:10px 15px;
+  border-bottom:1px solid #ccc;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
 
-    .device-panel h4 {
-        margin: 4px 0 8px 0;
-        text-align: center;
-    }
+nav a{
+  margin-left:10px;
+  text-decoration:none;
+  color:#004;
+  font-weight:600;
+}
 
-    .temp-item {
-        margin-bottom: 4px;
-    }
+#top-bar{
+  padding:8px 12px;
+  display:flex;
+  gap:20px;
+  align-items:center;
+  flex-wrap:wrap;
+}
 
-    body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        background: #fafafa;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-    }
+#controls{
+  padding:10px 12px;
+}
 
-    header {
-        background: white;
-        padding: 10px 15px;
-        border-bottom: 1px solid #ccc;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
+.channel-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill,minmax(180px,1fr));
+  gap:6px 12px;
+  max-width:900px;
+}
 
-    nav a {
-        margin-left: 10px;
-        text-decoration: none;
-        color: #004;
-        font-weight: 600;
-    }
+.channel-item{
+  display:flex;
+  align-items:center;
+}
 
-    .content {
-        flex: 1;
-        padding: 10px;
-        box-sizing: border-box;
-    }
+#plot-container{
+  flex:1;
+  min-height:0;
+  border:3px solid #ccc;
+  border-radius:6px;
+  background:white;
+  padding:8px;
+  margin:10px;
+  box-sizing:border-box;
+  box-shadow:0 1px 3px rgba(0,0,0,0.08);
+}
 
-    .container { display:flex; gap: 20px; align-items:flex-start; flex-wrap: wrap; }
-    .device { border: 1px solid #ddd; padding: 12px; width: 320px; border-radius:6px; }
-    .device h3 { margin: 6px 0 10px 0; text-align:center; }
+#plot{
+  width:100%;
+  height:100%;
+}
 
-    .row { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
-    input[type="number"], input[type="text"] { padding:6px; width: 120px; }
-    button { padding:6px 10px; cursor:pointer; }
-    .on { background-color: lightgreen; }
-    .off { background-color: lightcoral; }
-
-    .label { font-weight:600; width: 120px; display:inline-block; }
-    hr { border: 0; border-top: 1px solid #eee; margin: 6px 0; }
 </style>
-
-  </style>
 </head>
+
 <body>
 
-</head>
-<body>
-  <header>
-    <div class="nav-top">
-      <h2>Interactive Temperature Viewer</h2>
-      <nav>
-        <a href="/controller">Controller</a>
-        <a href="/algorithm">Algorithm</a>
-        <a href="/display">Display (live plot)</a>
-        <a href="/display/CTC100A">CTC100A</a>
-        <a href="/display/CTC100B">CTC100B</a>
-        <a href="/display/Lakeshore372">Lakeshore 372</a>
-        <a href="/display/Lakeshore224">Lakeshore 224</a>
-      </nav>
-    </div>
-  </header>
+<header>
+<h2>Interactive Temperature Viewer</h2>
+<nav>
+<a href="/controller">Controller</a>
+<a href="/algorithm">Algorithm</a>
+</nav>
+</header>
 
 <div id="top-bar">
   <label>
-    Time window (min):
-    <input id="windowInput" type="number" min="0" step="0.1" value="10">
-    <span>(0 = all)</span>
+    Tmin (min):
+    <input id="tminInput" type="number" step="0.1" value="0">
+    <span>(0 = start)</span>
+  </label>
+  <label>
+    Tmax (min):
+    <input id="tmaxInput" type="number" step="0.1" value="-1">
+    <span>(-1 = now)</span>
   </label>
 </div>
 
 <div id="controls"></div>
 
 <div id="plot-container">
-  <div id="plot"></div>
+<div id="plot"></div>
 </div>
 
 <script>
+
 let snapshot = {};
 let plotDiv = document.getElementById("plot");
 
-/* -----------------------------
-   Fetch backend data
------------------------------ */
-async function fetchData() {
+
+/* Fetch backend data */
+
+async function fetchData(){
   const r = await fetch("/api/plotly_data");
   snapshot = await r.json();
 }
 
-/* -----------------------------
-   Build device panels (ALL OFF)
------------------------------ */
-function buildDevicePanels() {
+
+/* Build channel checkbox grid */
+
+function buildChannelPanel(){
+
   let controls = document.getElementById("controls");
   controls.innerHTML = "";
 
-  for (const [device, devData] of Object.entries(snapshot)) {
-    let panel = document.createElement("div");
-    panel.className = "device-panel";
+  let grid = document.createElement("div");
+  grid.className = "channel-grid";
 
-    let title = document.createElement("h4");
-    title.textContent = device;
-    panel.appendChild(title);
+  for(const ch of Object.keys(snapshot)){
 
-    for (const ch of Object.keys(devData)) {
-      if (ch === "times") continue;
+    if(ch === "times") continue;
 
-      let div = document.createElement("div");
-      div.className = "temp-item";
+    let item = document.createElement("div");
+    item.className = "channel-item";
 
-      let cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.dataset.device = device;
-      cb.dataset.channel = ch;
-      cb.checked = false;
-      cb.onchange = updatePlot;
+    let cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.dataset.channel = ch;
+    cb.onchange = updatePlot;
 
-      let label = document.createElement("label");
-      label.appendChild(cb);
-      label.append(" " + ch);
+    let label = document.createElement("label");
+    label.appendChild(cb);
+    label.append(" " + ch);
 
-      div.appendChild(label);
-      panel.appendChild(div);
-    }
-
-    controls.appendChild(panel);
+    item.appendChild(label);
+    grid.appendChild(item);
   }
+
+  controls.appendChild(grid);
 }
 
-/* -----------------------------
-   Gradient calculation (30 s)
------------------------------ */
-function computeGradient(timesMin, ys) {
-  let tNow = timesMin[timesMin.length - 1];
-  for (let i = timesMin.length - 2; i >= 0; i--) {
+
+/* Gradient calculation */
+
+function computeGradient(timesMin, ys){
+
+  let tNow = timesMin[timesMin.length-1];
+
+  for(let i = timesMin.length-2; i >= 0; i--){
+
     let dt = tNow - timesMin[i];
-    if (dt >= 0.5) { // 30 seconds
-      return (ys[ys.length - 1] - ys[i]) / dt * 1000.0;
+
+    if(dt >= 0.5){
+      return (ys[ys.length-1] - ys[i]) / dt * 1000.0;
     }
+
   }
+
   return null;
+
 }
 
-/* -----------------------------
-   Update plot
------------------------------ */
-function updatePlot() {
+
+/* Update plot */
+
+function updatePlot(){
+
   let traces = [];
 
-  let windowVal = parseFloat(document.getElementById("windowInput").value);
-  let windowMin = (!windowVal || windowVal <= 0) ? null : windowVal;
+  let tminVal = parseFloat(document.getElementById("tminInput").value);
+  let tmaxVal = parseFloat(document.getElementById("tmaxInput").value);
 
   let checkboxes = document.querySelectorAll("input[type=checkbox]:checked");
 
   checkboxes.forEach(cb => {
-    let device = cb.dataset.device;
+
     let ch = cb.dataset.channel;
 
-    let devData = snapshot[device];
-    if (!devData) return;
+    let times = snapshot.times.map(t => new Date(t));
+    let ys = snapshot[ch];
 
-    let times = devData.times.map(t => new Date(t));
-    let ys = devData[ch];
-    if (!ys || times.length === 0) return;
+    if(!ys || times.length === 0) return;
 
     let t0 = times[0];
     let tMin = times.map(t => (t - t0) / 60000.0);
-    let tMax = tMin[tMin.length - 1];
+    let tMax = tMin[tMin.length-1];
+
+    // -1 in tmax means show up to the latest data point
+    let effectiveTmax = (tmaxVal < 0) ? tMax : tmaxVal;
+    // 0 in tmin means show from the very start
+    let effectiveTmin = (tminVal <= 0) ? 0 : tminVal;
 
     let tx = [];
     let ty = [];
 
-    for (let i = 0; i < ys.length; i++) {
-      if (ys[i] <= -9) continue;
-      if (windowMin !== null && tMin[i] < tMax - windowMin) continue;
+    for(let i=0; i<ys.length; i++){
+
+      if(ys[i] <= -9) continue;
+      if(tMin[i] < effectiveTmin) continue;
+      if(tMin[i] > effectiveTmax) continue;
 
       tx.push(tMin[i]);
       ty.push(ys[i]);
+
     }
 
-    if (tx.length < 2) return;
+    if(tx.length < 2) return;
 
-    let current = ty[ty.length - 1];
+    let current = ty[ty.length-1];
     let grad = computeGradient(tx, ty);
 
     let label = `${ch} ${current.toFixed(3)}K`;
-    if (grad !== null) {
+
+    if(grad !== null)
       label += `<br>${grad.toFixed(1)}mK/min`;
-    }
 
     traces.push({
+
       x: tx,
       y: ty,
       mode: "lines",
       name: label,
       hovertemplate: "%{y:.3f}K<br>%{x:.2f}min<extra></extra>"
+
     });
+
   });
 
   Plotly.react(plotDiv, traces, {
+
     autosize: true,
     showlegend: true,
+
     xaxis: { title: "Time (min)" },
     yaxis: { title: "Temperature (K)" },
+
     legend: {
       borderwidth: 1,
       itemsizing: "constant"
     },
+
     margin: { r: 260 }
+
   });
+
 }
 
-/* -----------------------------
-   Resize handler
------------------------------ */
+
+/* Resize handler */
+
 window.addEventListener("resize", () => {
   Plotly.Plots.resize(plotDiv);
 });
 
-/* -----------------------------
-   Refresh loop
------------------------------ */
-async function refresh() {
+
+/* Refresh loop */
+
+async function refresh(){
   await fetchData();
   updatePlot();
 }
 
-/* -----------------------------
-   Init
------------------------------ */
-(async function init() {
-  await fetchData();
-  buildDevicePanels();
 
-  document.getElementById("windowInput").oninput = updatePlot;
+/* Init */
+
+(async function init(){
+
+  await fetchData();
+
+  buildChannelPanel();
+
+  document.getElementById("tminInput").oninput = updatePlot;
+  document.getElementById("tmaxInput").oninput = updatePlot;
 
   updatePlot();
+
   setInterval(refresh, 2000);
+
 })();
+
 </script>
 
 </body>
 </html>
-
