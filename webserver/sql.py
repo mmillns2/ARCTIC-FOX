@@ -7,6 +7,7 @@ def dateFromTimeStamp(time,format):
     return datetime.datetime.fromtimestamp(int(time)).strftime(format)
 
 class SQL:
+    """
     def __init__(self,debug,options):
         self.Debug = debug
         host = options[0]
@@ -21,7 +22,31 @@ class SQL:
             self.DBconn = self.db.cursor()
         except:
             print("SQL error ...")
+    """
 
+    def __init__(self, debug, options):
+        self.Debug = debug
+        self._host = options[0]
+        self._user = options[1]
+        self._port = int(options[2])
+        self._db = options[3]
+        self._connect()
+
+    def _connect(self):
+        psql_connect = "dbname=%s user=%s host=%s port=%d" % (
+            self._db, self._user, self._host, self._port
+        )
+        print("[SQL] Connecting: %s" % psql_connect)
+        self.db = psycopg2.connect(psql_connect)
+        self.schema = 'public.'
+        self.DBconn = self.db.cursor()
+
+    def reconnect(self):
+        try:
+            self.db.close()
+        except:
+            pass
+        self._connect()
 
     def commit(self):
         self.db.commit()
@@ -195,6 +220,64 @@ class SQL:
                 d.update(v)
             data.append(d)
         return data
+    
+    def getSCValuesBetween(self, names, start_time, end_time):
+        """
+        Fetch data for given channels between start_time and end_time.
+
+        names      : list of channel names
+        start_time : datetime or unix timestamp
+        end_time   : datetime or unix timestamp
+
+        returns:
+        {
+            channel_name: {
+                "time":  [...],
+                "value": [...]
+            }
+        }
+        """
+
+        # normalize start_time
+        if isinstance(start_time, datetime.datetime):
+            start_time = int(start_time.timestamp())
+        # normalize end_time
+        if isinstance(end_time, datetime.datetime):
+            end_time = int(end_time.timestamp())
+
+        data = {}
+
+        for name in names:
+            scid = self.getSCID(name)
+
+            sql = (
+                "SELECT time, value FROM %sslow_control_data "
+                "WHERE scid = %d "
+                "AND time >= to_timestamp(%d) "
+                "AND time <= to_timestamp(%d) "
+                "ORDER BY time"
+            ) % (self.schema, scid, start_time, end_time)
+
+            if self.Debug:
+                print("SQL():", sql)
+
+            self.DBconn.execute(sql)
+            rows = self.DBconn.fetchall()
+
+            times = []
+            values = []
+
+            for time_val, value in rows:
+                times.append(time_val)
+                values.append(float(value))
+
+            data[name] = {
+                "time": times,
+                "value": values
+            }
+
+        return data
         
     def close(self):
         self.db.close()
+
