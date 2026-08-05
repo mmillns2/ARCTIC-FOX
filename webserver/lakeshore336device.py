@@ -1,6 +1,6 @@
-from lakeshore.model_224 import Model336
+from lakeshore import Model336
 
-class LakeShore224Device:
+class LakeShore336Device:
     def __init__(self, port, name = None):
         try:
             if Model336 is None:
@@ -47,6 +47,34 @@ class LakeShore224Device:
                 f"Error reading temperature from Lake Shore 336 (Channel {channel}): {e}"
             )
             return None
+
+
+    def get_voltage(self, channel):
+        '''
+        Read voltage in Ohms from input channel A–D.
+        Uses package API.
+        '''
+        try:
+            readings = self.device.get_all_sensor_reading()
+            temp = -10
+            match channel:
+                case 'A':
+                    temp = readings[0] 
+                case 'B':
+                    temp = readings[1] 
+                case 'C':
+                    temp = readings[2] 
+                case 'D':
+                    temp = readings[3] 
+
+            #print(f'336: {channel} = {temp} V')
+            return temp
+        except Exception as e:
+            print(
+                f"Error reading resistance from Lake Shore 336 (Channel {channel}): {e}"
+            )
+            return None
+
 
     def read_all_channels(self):
         '''
