@@ -1,7 +1,6 @@
 import serial
 import time
 
-
 class GPDX303S:
     def __init__(self, port, baudrate=9600, timeout=1.0, name=None):
         self.ser = serial.Serial(
@@ -55,12 +54,14 @@ class GPDX303S:
         '''
         return self._query("ERR?")
 
+    # Readout
     def output_on(self):
         self._write("OUT1")
 
     def output_off(self):
         self._write("OUT0")
 
+    # Output control
     def set_voltage(self, ch: int, volts: float):
         self._write(f"VSET{ch}:{volts:.3f}")
 
@@ -73,6 +74,7 @@ class GPDX303S:
     def get_current_setpoint(self, ch: int) -> float:
         return float(self._query(f"ISET{ch}?").replace('A', ''))
 
+    # Read actual output values
     def get_voltage(self, ch: int) -> float:
         return float(self._query(f"VOUT{ch}?").replace('V', ''))
 
