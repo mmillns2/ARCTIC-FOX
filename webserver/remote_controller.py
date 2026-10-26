@@ -13,7 +13,7 @@ class RemoteController:
 
     def send(self, payload):
 
-        msg = json.dumps(payload)
+        msg = json.dumps(payload) + "\n"
 
         with socket.socket() as s:
             s.settimeout(2)
@@ -21,7 +21,16 @@ class RemoteController:
             s.connect((self.host, self.port))
             s.sendall(msg.encode("ascii"))
 
-            response = s.recv(1024).decode("ascii").strip()
+            #response = s.recv(1024).decode("ascii").strip()
+
+            buf = ""
+            while "\n" not in buf:
+                chunk = s.recv(1024).decode("ascii")
+                if not chunk:
+                    break
+                buf += chunk
+
+            response = buf.strip()
 
             if response == "1":
                 raise ValueError("Command failed")
@@ -40,6 +49,15 @@ class RemoteController:
 
 
     # API wrappers
+    def ping(self):
+        payload = {
+            "channel": None,
+            "action": "ping",
+            "value": None
+        }
+
+        self.send_retry(payload)
+
     def get_channels(self):
         payload = {
             "channel": None,
