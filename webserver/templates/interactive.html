@@ -35,13 +35,15 @@ nav a{
 
 #top-bar{
   padding:8px 12px;
+  display:flex;
+  gap:20px;
+  align-items:center;
+  flex-wrap:wrap;
 }
 
 #controls{
   padding:10px 12px;
 }
-
-/* grid layout for many channels */
 
 .channel-grid{
   display:grid;
@@ -57,6 +59,7 @@ nav a{
 
 #plot-container{
   flex:1;
+  min-height:0;
   border:3px solid #ccc;
   border-radius:6px;
   background:white;
@@ -64,6 +67,11 @@ nav a{
   margin:10px;
   box-sizing:border-box;
   box-shadow:0 1px 3px rgba(0,0,0,0.08);
+}
+
+#plot{
+  width:100%;
+  height:100%;
 }
 
 </style>
@@ -80,11 +88,16 @@ nav a{
 </header>
 
 <div id="top-bar">
-<label>
-Time window (min):
-<input id="windowInput" type="number" min="0" step="0.1" value="10">
-<span>(0 = all)</span>
-</label>
+  <label>
+    Tmin (min):
+    <input id="tminInput" type="number" step="0.1" value="0">
+    <span>(0 = start)</span>
+  </label>
+  <label>
+    Tmax (min):
+    <input id="tmaxInput" type="number" step="0.1" value="-1">
+    <span>(-1 = now)</span>
+  </label>
 </div>
 
 <div id="controls"></div>
@@ -141,7 +154,7 @@ function buildChannelPanel(){
 }
 
 
-/*  Gradient calculation */
+/* Gradient calculation */
 
 function computeGradient(timesMin, ys){
 
@@ -151,7 +164,7 @@ function computeGradient(timesMin, ys){
 
     let dt = tNow - timesMin[i];
 
-    if(dt >= 0.5){ // 30 seconds
+    if(dt >= 0.5){
       return (ys[ys.length-1] - ys[i]) / dt * 1000.0;
     }
 
@@ -168,8 +181,8 @@ function updatePlot(){
 
   let traces = [];
 
-  let windowVal = parseFloat(document.getElementById("windowInput").value);
-  let windowMin = (!windowVal || windowVal <= 0) ? null : windowVal;
+  let tminVal = parseFloat(document.getElementById("tminInput").value);
+  let tmaxVal = parseFloat(document.getElementById("tmaxInput").value);
 
   let checkboxes = document.querySelectorAll("input[type=checkbox]:checked");
 
@@ -186,15 +199,19 @@ function updatePlot(){
     let tMin = times.map(t => (t - t0) / 60000.0);
     let tMax = tMin[tMin.length-1];
 
+    // -1 in tmax means show up to the latest data point
+    let effectiveTmax = (tmaxVal < 0) ? tMax : tmaxVal;
+    // 0 in tmin means show from the very start
+    let effectiveTmin = (tminVal <= 0) ? 0 : tminVal;
+
     let tx = [];
     let ty = [];
 
-    for(let i=0;i<ys.length;i++){
+    for(let i=0; i<ys.length; i++){
 
       if(ys[i] <= -9) continue;
-
-      if(windowMin !== null && tMin[i] < tMax - windowMin)
-        continue;
+      if(tMin[i] < effectiveTmin) continue;
+      if(tMin[i] > effectiveTmax) continue;
 
       tx.push(tMin[i]);
       ty.push(ys[i]);
@@ -223,21 +240,20 @@ function updatePlot(){
 
   });
 
+  Plotly.react(plotDiv, traces, {
 
-  Plotly.react(plotDiv,traces,{
+    autosize: true,
+    showlegend: true,
 
-    autosize:true,
-    showlegend:true,
+    xaxis: { title: "Time (min)" },
+    yaxis: { title: "Temperature (K)" },
 
-    xaxis:{title:"Time (min)"},
-    yaxis:{title:"Temperature (K)"},
-
-    legend:{
-      borderwidth:1,
-      itemsizing:"constant"
+    legend: {
+      borderwidth: 1,
+      itemsizing: "constant"
     },
 
-    margin:{r:260}
+    margin: { r: 260 }
 
   });
 
@@ -247,19 +263,15 @@ function updatePlot(){
 /* Resize handler */
 
 window.addEventListener("resize", () => {
-
   Plotly.Plots.resize(plotDiv);
-
 });
 
 
 /* Refresh loop */
 
 async function refresh(){
-
   await fetchData();
   updatePlot();
-
 }
 
 
@@ -271,11 +283,12 @@ async function refresh(){
 
   buildChannelPanel();
 
-  document.getElementById("windowInput").oninput = updatePlot;
+  document.getElementById("tminInput").oninput = updatePlot;
+  document.getElementById("tmaxInput").oninput = updatePlot;
 
   updatePlot();
 
-  setInterval(refresh,2000);
+  setInterval(refresh, 2000);
 
 })();
 

@@ -64,6 +64,10 @@ cursor:pointer;
 .state-on{background:green;}
 .state-off{background:red;}
 
+#hw-btn.connected{background:lightgreen;}
+#hw-btn.disconnected{background:lightcoral;}
+#hw-btn:disabled{cursor:not-allowed;opacity:0.7;}
+
 
 </style>
 </head>
@@ -77,6 +81,13 @@ cursor:pointer;
 <a href="/interactive">Display</a>
 </nav>
 </header>
+
+<button
+  id="hw-btn"
+  class="{{ 'connected' if hardware_connected else 'disconnected' }}"
+  onclick="reconnect()">
+  {{ 'Connected' if hardware_connected else 'Disconnected' }}
+</button>
 
 <div class="container">
 
@@ -180,6 +191,33 @@ postJSON('/api/turn_off',{channel});
 
 }
 
+function setHwButton(connected){
+    const btn = document.getElementById("hw-btn");
+    btn.className = connected ? "connected" : "disconnected";
+    btn.textContent = connected ? "Connected" : "Disconnected";
+}
+
+async function reconnect(){
+    const btn = document.getElementById("hw-btn");
+    btn.disabled = true;
+    btn.textContent = "Connecting…";
+    try {
+        const res = await fetch("/api/reconnect", {method:"POST"});
+        const data = await res.json();
+        if(data.status === "ok"){
+            location.reload();
+        } else {
+            alert("Reconnect failed: " + (data.msg || "unknown error"));
+            setHwButton(false);
+        }
+    } catch(e) {
+        alert("Reconnect failed: could not reach server");
+        setHwButton(false);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
 function refreshStates(){
 
 fetch("/api/controller_state")
@@ -215,6 +253,10 @@ btn.className = state;
 }
 
 });
+
+fetch("/api/hardware_status")
+.then(res=>res.json())
+.then(data=>setHwButton(data.connected));
 
 }
 
