@@ -134,15 +134,19 @@ font-weight:600;
 
 <div class="container">
 
+{% set pid_backends = ["software_pid", "hardware_pid"] %}
+
 <!-- TIMINGS A -->
 <div class="panel">
 <h3>Timings A (seconds)</h3>
 
 {% set timings = [
-("t_switches_off","Switches off"),
-("t_heaters_on","Heaters on"),
-("t_switch_on","Switch on"),
-("t_between_sides","Between sides")
+  ("t_switches_off",  "Switches off"),
+  ("t_4puheat_on",    "4puheat on"),
+  ("t_3puheat_on",    "3puheat on"),
+  ("t_4switch_on",    "4puheat off, 4swheat on"),
+  ("t_3switch_on",    "3puheat off, 3swheat on"),
+  ("t_between_sides", "Between sides")
 ] %}
 
 {% for key,label in timings %}
@@ -194,123 +198,97 @@ Default
 
 <!-- HEATERS A -->
 <div class="panel">
-<h3>Heater Temperatures A (K)</h3>
-
+<h3>Pump Heaters A</h3>
+{% set side = 'A' %}
+{% set sidecfg = defaults | attr(side) %}
 {% set heaters = [
-("heater_3puheat","3puheat"),
-("heater_4puheat","4puheat")
+  ("heater_3puheat","3puheat","3pump"),
+  ("heater_4puheat","4puheat","4pump")
 ] %}
-
-{% for key,label in heaters %}
+{% for key,label,prefix in heaters %}
+{% set unit = "K" if role_backends.get(prefix ~ side) in pid_backends else "V" %}
 <div class="row">
-<span class="label">{{ label }}</span>
-
-<input id="A-{{ key }}"
-type="number"
-step="0.1"
-value="{{ defaults.A | attr(key) }}">
-
-<button id="A-{{ key }}-set"
-class="set-btn not-set"
-onclick="setVal('A','{{ key }}')">
-Set
-</button>
-
-<button onclick="resetVal('A','{{ key }}', {{ defaults.A | attr(key) }})">
-Default
-</button>
+<span class="label">{{ label }} ({{ unit }})</span>
+<input id="{{ side }}-{{ key }}" type="number"
+  step="{{ '0.1' if unit == 'K' else '0.01' }}"
+  value="{{ sidecfg | attr(key) }}">
+<button id="{{ side }}-{{ key }}-set" class="set-btn not-set"
+  onclick="setVal('{{ side }}','{{ key }}')">Set</button>
+<button onclick="resetVal('{{ side }}','{{ key }}', {{ sidecfg | attr(key) }})">Default</button>
 </div>
 {% endfor %}
-
 </div>
 
 
 <!-- HEATERS B -->
 <div class="panel">
-<h3>Heater Temperatures B (K)</h3>
-
-{% for key,label in heaters %}
+<h3>Pump Heaters B</h3>
+{% set side = 'B' %}
+{% set sidecfg = defaults | attr(side) %}
+{% set heaters = [
+  ("heater_3puheat","3puheat","3pump"),
+  ("heater_4puheat","4puheat","4pump")
+] %}
+{% for key,label,prefix in heaters %}
+{% set unit = "K" if role_backends.get(prefix ~ side) in pid_backends else "V" %}
 <div class="row">
-<span class="label">{{ label }}</span>
-
-<input id="B-{{ key }}"
-type="number"
-step="0.1"
-value="{{ defaults.B | attr(key) }}">
-
-<button id="B-{{ key }}-set"
-class="set-btn not-set"
-onclick="setVal('B','{{ key }}')">
-Set
-</button>
-
-<button onclick="resetVal('B','{{ key }}', {{ defaults.B | attr(key) }})">
-Default
-</button>
+<span class="label">{{ label }} ({{ unit }})</span>
+<input id="{{ side }}-{{ key }}" type="number"
+  step="{{ '0.1' if unit == 'K' else '0.01' }}"
+  value="{{ sidecfg | attr(key) }}">
+<button id="{{ side }}-{{ key }}-set" class="set-btn not-set"
+  onclick="setVal('{{ side }}','{{ key }}')">Set</button>
+<button onclick="resetVal('{{ side }}','{{ key }}', {{ sidecfg | attr(key) }})">Default</button>
 </div>
 {% endfor %}
-
 </div>
 
 
 <!-- SWITCHES A -->
 <div class="panel">
-<h3>Switch Voltages A (V)</h3>
-
+<h3>Switches A</h3>
+{% set side = 'A' %}
+{% set sidecfg = defaults | attr(side) %}
 {% set switches = [
-("switch_3swheat","3swheat"),
-("switch_4swheat","4swheat")
+  ("switch_3swheat","3swheat","3switch"),
+  ("switch_4swheat","4swheat","4switch")
 ] %}
-
-{% for key,label in switches %}
+{% for key,label,prefix in switches %}
+{% set unit = "K" if role_backends.get(prefix ~ side) in pid_backends else "V" %}
 <div class="row">
-<span class="label">{{ label }}</span>
-
-<input id="A-{{ key }}"
-type="number"
-step="0.01"
-value="{{ defaults.A | attr(key) }}">
-
-<button id="A-{{ key }}-set"
-class="set-btn not-set"
-onclick="setVal('A','{{ key }}')">
-Set
-</button>
-
-<button onclick="resetVal('A','{{ key }}', {{ defaults.A | attr(key) }})">
-Default
-</button>
+<span class="label">{{ label }} ({{ unit }})</span>
+<input id="{{ side }}-{{ key }}" type="number"
+  step="{{ '0.1' if unit == 'K' else '0.01' }}"
+  value="{{ sidecfg | attr(key) }}">
+<button id="{{ side }}-{{ key }}-set" class="set-btn not-set"
+  onclick="setVal('{{ side }}','{{ key }}')">Set</button>
+<button onclick="resetVal('{{ side }}','{{ key }}', {{ sidecfg | attr(key) }})">Default</button>
 </div>
 {% endfor %}
-
 </div>
 
 
 <!-- SWITCHES B -->
 <div class="panel">
-<h3>Switch Voltages B (V)</h3>
-
-{% for key,label in switches %}
+<h3>Switches B</h3>
+{% set side = 'B' %}
+{% set sidecfg = defaults | attr(side) %}
+{% set switches = [
+  ("switch_3swheat","3swheat","3switch"),
+  ("switch_4swheat","4swheat","4switch")
+] %}
+{% for key,label,prefix in switches %}
+{% set unit = "K" if role_backends.get(prefix ~ side) in pid_backends else "V" %}
 <div class="row">
-<span class="label">{{ label }}</span>
-
-<input id="B-{{ key }}"
-type="number"
-step="0.01"
-value="{{ defaults.B | attr(key) }}">
-
-<button id="B-{{ key }}-set"
-class="set-btn not-set"
-onclick="setVal('B','{{ key }}')">
-Set
-</button>
-
-<button onclick="resetVal('B','{{ key }}', {{ defaults.B | attr(key) }})">
-Default
-</button>
+<span class="label">{{ label }} ({{ unit }})</span>
+<input id="{{ side }}-{{ key }}" type="number"
+  step="{{ '0.1' if unit == 'K' else '0.01' }}"
+  value="{{ sidecfg | attr(key) }}">
+<button id="{{ side }}-{{ key }}-set" class="set-btn not-set"
+  onclick="setVal('{{ side }}','{{ key }}')">Set</button>
+<button onclick="resetVal('{{ side }}','{{ key }}', {{ sidecfg | attr(key) }})">Default</button>
 </div>
 {% endfor %}
-
 </div>
 
 

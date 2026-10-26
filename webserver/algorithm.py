@@ -9,16 +9,17 @@ from typing import Optional
 @dataclass
 class SideConfig:
     t_switches_off: int = 600
-    t_heaters_on: int = 1200
-    t_switch_on: int = 900
-    t_between_sides: int = 2700
+    t_4puheat_on: int = 1200
+    t_3puheat_on: int = 1200
+    t_4switch_on: int = 900
+    t_3switch_on: int = 900
+    t_between_sides: int = 1800
 
     heater_3puheat: float = 50.0
     heater_4puheat: float = 50.0
 
     switch_3swheat: float = 7.0
     switch_4swheat: float = 7.0
-
 
 # Pre-cooling config
 @dataclass
@@ -56,7 +57,8 @@ class Cycle(Thread):
         controller,
         config: AlgorithmConfig,
         last_values: dict,
-        last_states: dict
+        last_states: dict,
+        algo_channels=None, backend_types=None
     ):
         super().__init__(daemon=True)
 
@@ -64,6 +66,9 @@ class Cycle(Thread):
         self.config = config
         self.last_values = last_values
         self.last_states = last_states
+
+        self.algo_channels = dict(algo_channels or {})   # role -> real channel name
+        self.backend_types = dict(backend_types or {})   # channel name -> backend type
 
         self.stop_event = Event()
         self._cmd_queue = queue.Queue()
@@ -74,6 +79,34 @@ class Cycle(Thread):
         self.step_total: int = 1
         self.current_side: Optional[str] = None
 
+
+    def set_channel_map(self, algo_channels, backend_types):
+        self.algo_channels = dict(algo_channels)
+        self.backend_types = dict(backend_types)
+
+    # Resolve a role -> channel and send the right kind of "on" command.
+    def _apply(self, role, value):
+        ch = self.algo_channels.get(role)
+        if ch is None:
+            print(f"[Cycle] No channel mapped for role '{role}'")
+            return False
+
+        btype = self.backend_types.get(ch)
+
+        if btype in ("software_pid", "hardware_pid"):
+            return self.send_and_update(ch, self.controller.set_setpoint, value)
+        elif btype == "manual":
+            return self.send_and_update(ch, self.controller.set_manual, value)
+
+        print(f"[Cycle] Channel '{ch}' (backend '{btype}') can't be actuated")
+        return False
+
+    def _off(self, role):
+        ch = self.algo_channels.get(role)
+        if ch is None:
+            print(f"[Cycle] No channel mapped for role '{role}'")
+            return False
+        return self.send_and_update(ch, self.controller.off)
 
     def cmd_start(self):
         self._cmd_queue.put(("start", None))
@@ -169,95 +202,38 @@ class Cycle(Thread):
 
     # Run one side 
     def run_side(self, side_name: str, c: SideConfig) -> bool:
-
         self.current_side = side_name
 
-        # Switches off 
+        # switches off
         self.set_step(f"{side_name}: switches off", c.t_switches_off)
+        if not self._off(f"4switch{side_name}"): return False
+        if not self._off(f"3switch{side_name}"): return False
+        if not self.sleep(c.t_switches_off):     return False
 
-        if not self.send_and_update(
-            f"4switch{side_name} [K]",
-            self.controller.off
-        ):
-            return False
+        # 4puheat on
+        self.set_step(f"{side_name}: 4puheat on", c.t_4puheat_on)
+        if not self._apply(f"4pump{side_name}", c.heater_4puheat): return False
+        if not self.sleep(c.t_4puheat_on):                        return False
 
-        if not self.send_and_update(
-            f"3switch{side_name} [K]",
-            self.controller.off
-        ):
-            return False
+        # 3puheat on
+        self.set_step(f"{side_name}: 3puheat on", c.t_3puheat_on)
+        if not self._apply(f"3pump{side_name}", c.heater_3puheat): return False
+        if not self.sleep(c.t_3puheat_on):                        return False
 
-        if not self.sleep(c.t_switches_off):
-            return False
+        # 4puheat off, 4swheat on
+        self.set_step(f"{side_name}: 4puheat off, 4swheat on", c.t_4switch_on)
+        if not self._off(f"4pump{side_name}"):                     return False
+        if not self._apply(f"4switch{side_name}", c.switch_4swheat): return False
+        if not self.sleep(c.t_4switch_on):                         return False
 
-
-        # Heaters on 
-        self.set_step(f"{side_name}: heaters on", c.t_heaters_on)
-
-        if not self.send_and_update(
-            f"4pump{side_name} [K]",
-            self.controller.set_setpoint,
-            c.heater_4puheat
-        ):
-            return False
-
-        if not self.send_and_update(
-            f"3pump{side_name} [K]",
-            self.controller.set_setpoint,
-            c.heater_3puheat
-        ):
-            return False
-
-        if not self.sleep(c.t_heaters_on):
-            return False
-
-
-        # 4puheat off, 4swheat on 
-        self.set_step(
-            f"{side_name}: 4puheat off, 4swheat on",
-            c.t_switch_on
-        )
-
-        if not self.send_and_update(
-            f"4pump{side_name} [K]",
-            self.controller.off
-        ):
-            return False
-
-        if not self.send_and_update(
-            f"4switch{side_name} [K]",
-            self.controller.set_manual,
-            c.switch_4swheat
-        ):
-            return False
-
-        if not self.sleep(c.t_switch_on):
-            return False
-
-
-        # 3puheat off, 3swheat on 
-        self.set_step(
-            f"{side_name}: 3puheat off, 3swheat on",
-            None
-        )
-
-        if not self.send_and_update(
-            f"3pump{side_name} [K]",
-            self.controller.off
-        ):
-            return False
-
-        if not self.send_and_update(
-            f"3switch{side_name} [K]",
-            self.controller.set_manual,
-            c.switch_3swheat
-        ):
-            return False
+        # 3puheat off, 3swheat on
+        self.set_step(f"{side_name}: 3puheat off, 3swheat on", c.t_3switch_on)
+        if not self._off(f"3pump{side_name}"):                     return False
+        if not self._apply(f"3switch{side_name}", c.switch_3swheat): return False
+        if not self.sleep(c.t_3switch_on):                         return False
 
         return True
 
-
-    # Main loop 
     def run(self):
         print("[Cycle] Algorithm thread started")
 
@@ -295,127 +271,29 @@ class Cycle(Thread):
 
         print("[Cycle] Thread exiting")
 
-
     def initial_precool(self, temp):
         self.config.initial_precool.enabled = True
         self.config.initial_precool.value = temp
 
-        # Switches off 
-        if not self.send_and_update(
-            f"4switchA [K]",
-            self.controller.off
-        ):
-            return False
-
-        if not self.send_and_update(
-            f"3switchA [K]",
-            self.controller.off
-        ):
-            return False
-
-        if not self.send_and_update(
-            f"4switchB [K]",
-            self.controller.off
-        ):
-            return False
-
-        if not self.send_and_update(
-            f"3switchB [K]",
-            self.controller.off
-        ):
-            return False
-
-        # Heaters on
-        if not self.send_and_update(
-            f"4pumpA [K]",
-            self.controller.set_setpoint,
-            temp
-        ):
-            return False
-
-        if not self.send_and_update(
-            f"3pumpA [K]",
-            self.controller.set_setpoint,
-            temp
-        ):
-            return False
-
-        if not self.send_and_update(
-            f"4pumpB [K]",
-            self.controller.set_setpoint,
-            temp
-        ):
-            return False
-
-        if not self.send_and_update(
-            f"3pumpB [K]",
-            self.controller.set_setpoint,
-            temp
-        ):
-            return False
-
+        for role in ("4switchA", "3switchA", "4switchB", "3switchB"):
+            if not self._off(role):
+                return False
+        for role in ("4pumpA", "3pumpA", "4pumpB", "3pumpB"):
+            if not self._apply(role, temp):
+                return False
         return True
 
     def pre_cycle_cool(self, voltage):
         self.config.pre_cycle_cool.enabled = True
         self.config.pre_cycle_cool.value = voltage
 
-        # Heaters off 
-        if not self.send_and_update(
-            f"4pumpA [K]",
-            self.controller.off
-        ):
-            return False
-
-        if not self.send_and_update(
-            f"3pumpA [K]",
-            self.controller.off
-        ):
-            return False
-
-        if not self.send_and_update(
-            f"4pumpB [K]",
-            self.controller.off
-        ):
-            return False
-
-        if not self.send_and_update(
-            f"3pumpB [K]",
-            self.controller.off
-        ):
-            return False
-
-        # Switches on
-        if not self.send_and_update(
-            f"4switchA [K]",
-            self.controller.set_manual,
-            voltage
-        ):
-            return False
-
-        if not self.send_and_update(
-            f"3switchA [K]",
-            self.controller.set_manual,
-            voltage
-        ):
-            return False
-
-        if not self.send_and_update(
-            f"4switchB [K]",
-            self.controller.set_manual,
-            voltage
-        ):
-            return False
-
-        if not self.send_and_update(
-            f"3switchB [K]",
-            self.controller.set_manual,
-            voltage
-        ):
-            return False
-        
+        for role in ("4pumpA", "3pumpA", "4pumpB", "3pumpB"):
+            if not self._off(role):
+                return False
+        for role in ("4switchA", "3switchA", "4switchB", "3switchB"):
+            if not self._apply(role, voltage):
+                return False
         return True
-
 
     # Status API 
     def get_status(self):
