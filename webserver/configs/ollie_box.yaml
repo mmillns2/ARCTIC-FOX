@@ -1,0 +1,75 @@
+channels:
+  A1 [V]:
+    backend: readout_V
+    voltage:
+      device: DiodeBox
+      channel: 4
+
+  A2 [V]:
+    backend: readout_V
+    voltage:
+      device: DiodeBox
+      channel: 5
+
+  A4 [V]:
+    backend: readout_V
+    voltage:
+      device: DiodeBox
+      channel: 7
+
+  A5 [V]:
+    backend: readout_V
+    voltage:
+      device: DiodeBox
+      channel: 0
+
+  A6 [V]:
+    backend: readout_V
+    voltage:
+      device: DiodeBox
+      channel: 1
+
+  A1 [K]:
+    backend: readout
+    temperature:
+      device: DiodeBox
+      channel: 4
+    webserver:
+      controller: False
+      display: True
+
+  A2 [K]:
+    backend: readout
+    temperature:
+      device: DiodeBox
+      channel: 5
+    webserver:
+      controller: False
+      display: True
+
+  A4 [K]:
+    backend: readout
+    temperature:
+      device: DiodeBox
+      channel: 7
+    webserver:
+      controller: False
+      display: True
+
+  A5 [K]:
+    backend: readout
+    temperature:
+      device: DiodeBox
+      channel: 0
+    webserver:
+      controller: False
+      display: True
+
+  A6 [K]:
+    backend: readout
+    temperature:
+      device: DiodeBox
+      channel: 1
+    webserver:
+      controller: False
+      display: True

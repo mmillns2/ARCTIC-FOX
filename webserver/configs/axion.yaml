@@ -17,15 +17,18 @@ channels:
       device: MX103QP
       channel: 1
     pid:
-      kp: 0.22
-      ki: 0.0008
-      kd: 0.5
-      min: 0.0 
-      max: 30.0
+      kp: 6.0
+      ki: 0.01
+      kd: 0
+      out_min: 0.0 
+      out_max: 30.0
+      ramp_rate: 6.0
+      autotune_enabled: True
     webserver:
       controller: True
       units: K
       display: True
+      algorithm: 4pumpA
 
   4switchA [K]:
     backend: manual
@@ -35,10 +38,19 @@ channels:
     actuator:
       device: GPDX303SA
       channel: 1
+    pid:
+      kp: 1.6
+      ki: 0.0
+      kd: 0
+      out_min: 0.0 
+      out_max: 30.0
+      ramp_rate: 6.0
+      autotune_enabled: False
     webserver:
       controller: True
-      units: V
+      units: V 
       display: True
+      algorithm: 4switchA
 
   4pumpAheat [V]:
     backend: readout_V
@@ -70,15 +82,20 @@ channels:
       device: MX103QP
       channel: 2
     pid:
-      kp: 0.22
-      ki: 0.0008
-      kd: 0.5
-      min: 0.0 
-      max: 30.0
+      kp: 6.0
+      ki: 0.01
+      kd: 0.0
+      out_min: 0.0 
+      out_max: 30.0
+      ramp_rate: 6.0
+      autotune_enabled: True
+      stage1_setpoint: 19.0     # K, intermediate
+      stage1_duration: 180      # seconds
     webserver:
       controller: True
       units: K
       display: True
+      algorithm: 3pumpA
 
   3switchA [K]:
     backend: manual
@@ -88,10 +105,19 @@ channels:
     actuator:
       device: GPDX303SA
       channel: 2
+    pid:
+      kp: 2.0
+      ki: 0.02
+      kd: 0
+      out_min: 0.0 
+      out_max: 30.0
+      ramp_rate: 10.0
+      autotune_enabled: False
     webserver:
       controller: True
       units: V
       display: True
+      algorithm: 3switchA
 
   3pumpAheat [V]:
     backend: readout_V
@@ -123,15 +149,18 @@ channels:
       device: MX103QP
       channel: 4
     pid:
-      kp: 0.22
-      ki: 0.0008
-      kd: 0.5
-      min: 0.0 
-      max: 30.0
+      kp: 6.0
+      ki: 0.01
+      kd: 0.0
+      out_min: 0.0 
+      out_max: 30.0
+      ramp_rate: 6.0
+      autotune_enabled: True
     webserver:
       controller: True
       units: K
       display: True
+      algorithm: 4pumpB
 
   4switchB [K]:
     backend: manual
@@ -141,10 +170,19 @@ channels:
     actuator:
       device: GPDX303SB
       channel: 1
+    pid:
+      kp: 1.5
+      ki: 0.01
+      kd: 0
+      out_min: 0.0 
+      out_max: 30.0
+      ramp_rate: 6.0
+      autotune_enabled: False
     webserver:
       controller: True
       units: V
       display: True
+      algorithm: 4switchB
   
   4pumpBheat [V]:
     backend: readout_V
@@ -176,15 +214,20 @@ channels:
       device: MX103QP
       channel: 3
     pid:
-      kp: 0.22
-      ki: 0.0008
-      kd: 0.5
-      min: 0.0 
-      max: 30.0
+      kp: 6.0
+      ki: 0.01
+      kd: 0.0
+      out_min: 0.0 
+      out_max: 30.0
+      ramp_rate: 6.0
+      autotune_enabled: True
+      stage1_setpoint: 19.0     # K, intermediate
+      stage1_duration: 180      # seconds
     webserver:
       controller: True
       units: K
       display: True
+      algorithm: 3pumpB
 
   3switchB [K]:
     backend: manual
@@ -194,10 +237,19 @@ channels:
     actuator:
       device: GPDX303SB
       channel: 2
+    pid:
+      kp: 1.5
+      ki: 0.02
+      kd: 0
+      out_min: 0.0 
+      out_max: 30.0
+      ramp_rate: 6.0
+      autotune_enabled: False
     webserver:
       controller: True
       units: V 
       display: True
+      algorithm: 3switchB
 
   3pumpBheat [V]:
     backend: readout_V
@@ -211,26 +263,53 @@ channels:
       device: GPDX303SB
       channel: 2
 
- #MC [K]:
- #   backend: readout
- #   temperature:
- #     device: Lakeshore350
- #     channel: D4
+  MC [K]:
+    backend: readout
+    temperature:
+      device: Lakeshore372
+      channel: 1
+    webserver:
+      controller: False
+      display: True
 
- # Still [K]:
- #   backend: readout
- #   temperature:
- #     device: Lakeshore350
- #     channel: D5
+  Still [K]:
+    backend: software_pid
+    temperature:
+      device: Lakeshore372
+      channel: A
+    actuator:
+      device: Lakeshore372
+      channel: 0
+    pid:
+      kp: 195       
+      ki: 20.0
+      kd: 3.0
+      out_min: 20.0 
+      out_max: 90.0
+      ramp_rate: 0.5
+      autotune_enabled: False
+      use_threshold: True
+      threshold: 3.0          
+      recapture: 0.800
+    webserver:
+      controller: True
+      units: 'K' 
+      display: True
 
   Condenser [K]:
     backend: readout
     temperature:
       device: Lakeshore372
-      channel: A
+      channel: 2
     webserver:
       controller: False
       display: True
+
+  Stillheat [%V]:
+    backend: readout_V
+    voltage:
+      device: Lakeshore372
+      channel: 0
 
   50K [K]:
     backend: readout
@@ -322,23 +401,23 @@ channels:
       device: Lakeshore218
       channel: 8
 
- #MC [R]:
- #   backend: readout_R
- #   temperature:
- #     device: Lakeshore350
- #     channel: D4
+  MC [R]:
+    backend: readout_R
+    resistance:
+      device: Lakeshore372
+      channel: 1
 
- # Still [R]:
- #   backend: readout_R
- #   temperature:
- #     device: Lakeshore372
- #     channel: A
+  Still [R]:
+    backend: readout_R
+    resistance:
+      device: Lakeshore372
+      channel: A
 
   Condenser [R]:
     backend: readout_R
     resistance:
       device: Lakeshore372
-      channel: A
+      channel: 2
 
   50K [V]:
     backend: readout_V
