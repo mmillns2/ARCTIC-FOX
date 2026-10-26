@@ -37,18 +37,16 @@ class DBReader(threading.Thread):
         print("[DBReader] Starting DB poll thread.")
 
         while True:
-
             try:
                 timestamps = self.sql.getSCTimes(self.last_timestamp)
-
                 if not timestamps:
                     time.sleep(self.interval)
                     continue
 
                 ts = max(timestamps)
 
-                rows = self.sql.getSCValues(list(self.scids.values()), ts)
-
+                scid_list = list(self.scids.values())
+                rows = self.sql.getSCValues(scid_list, ts)
                 if not rows:
                     time.sleep(self.interval)
                     continue
@@ -56,19 +54,19 @@ class DBReader(threading.Thread):
                 record = rows[0]
                 t = record["time"]
 
-                # read DB values
-                for i, ch in enumerate(self.channels):
-
+                # build scid -> value using positional index (value-1 = scid_list[0], etc.)
+                scid_to_value = {}
+                for i, scid in enumerate(scid_list):
                     raw = record.get(f"value-{i+1}")
-
                     try:
-                        val = float(raw)
-                    except:
-                        continue
+                        scid_to_value[scid] = float(raw)
+                    except (TypeError, ValueError):
+                        scid_to_value[scid] = None
 
-                    if val < -9:
+                for ch in self.channels:
+                    val = scid_to_value.get(self.scids[ch])
+                    if val is None or val < -9:
                         continue
-
                     self.last_values[ch] = val
 
                 # append aligned values
@@ -85,13 +83,34 @@ class DBReader(threading.Thread):
                             self.state[ch].append(self.state[ch][-1])
 
                 # emit snapshot
-                self.plot_queue.put(copy.deepcopy(self.state))
+                try:
+                    self.plot_queue.put_nowait(copy.deepcopy(self.state))
+                except queue.Full:
+                    try:
+                        self.plot_queue.get_nowait()  # drop oldest
+                    except queue.Empty:
+                        pass
+                    self.plot_queue.put_nowait(copy.deepcopy(self.state))
 
                 self.last_timestamp = t
 
-            except Exception as e:
+                """
+                except Exception as e:
+                    self.sql.db.rollback()
+                    print("[DBReader] ERROR:", e)
+                """
 
-                self.sql.db.rollback()
+            except Exception as e:
                 print("[DBReader] ERROR:", e)
+                try:
+                    self.sql.db.rollback()
+                except Exception:
+                    print("[DBReader] Connection lost, reconnecting...")
+                    try:
+                        self.sql.reconnect()
+                        # Re-fetch SCIDs in case DB was rebuilt
+                        self.scids = {ch: self.sql.getSCID(ch) for ch in self.channels}
+                    except Exception as e2:
+                        print("[DBReader] Reconnect failed:", e2)
 
             time.sleep(self.interval)
