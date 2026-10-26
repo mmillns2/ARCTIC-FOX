@@ -41,10 +41,12 @@ def load_config(path, devices, hwio):
             backend = SoftwarePIDBackend(read_fn, pid)
 
         elif backend_type == "hardware_pid":
-            dev = devices[c["device"]]
-            temp_fn = lambda: hwio.call(dev.get_temperature)
-            sp_fn = lambda v: hwio.call(dev.set_setpoint, v)
-            backend = HardwarePIDBackend(temp_fn, sp_fn)
+            dev = devices[c["temperature"]["device"]]
+            read_fn = lambda d=dev, ch=c["temperature"]["channel"]: \
+                hwio.call(d.get_temperature, ch)
+            sp_fn = lambda v, d=dev, ch=c["temperature"]["channel"]: \
+                hwio.call(d.set_setpoint, ch, v)
+            backend = HardwarePIDBackend(read_fn, sp_fn)
 
         elif backend_type == "readout":
             dev = devices[c["temperature"]["device"]]
@@ -80,7 +82,11 @@ def load_config(path, devices, hwio):
             if "display" in c["webserver"]:
                 display = bool(c["webserver"]["display"])
 
-            channels[name] = Channel(name, backend, can_control, units, display)
+            algorithm = None                          
+            if "algorithm" in c["webserver"]:             
+                algorithm = str(c["webserver"]["algorithm"])
+
+            channels[name] = Channel(name, backend, can_control, units, display, algorithm)
         else:
             channels[name] = Channel(name, backend)
 
