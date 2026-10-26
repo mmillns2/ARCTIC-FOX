@@ -1,7 +1,6 @@
 import serial
 import time
 
-
 class MX103QP:
     def __init__(self, port, timeout=1.0, name=None):
         self.ser = serial.Serial(
@@ -23,7 +22,6 @@ class MX103QP:
         time.sleep(0.2)
 
         '''
-        Calibrate diodes snippet to be ran in manual in controller.py
         for i in range(91):
             volt_out = 9 - i*0.1
             self.set_voltage(1, volt_out)
@@ -52,6 +50,7 @@ class MX103QP:
     def unlock(self):
         self._write("IFLOCK 0")
 
+    # Output control
     def set_voltage(self, ch: int, volts: float):
         self._write(f"V{ch} {volts}")
         #self._write(f"OP{ch} 1")
@@ -80,6 +79,7 @@ class MX103QP:
     def output_state(self, ch: int) -> bool:
         return bool(int(self._query(f"OP{ch}?")))
 
+    # Readout
     def get_voltage(self, ch: int) -> float:
         resp = self._query(f"V{ch}O?")
         if resp is None:    
