@@ -65,6 +65,22 @@ class LakeShore372Device:
             )
             return None
 
+    def get_voltage(self, ch: int) -> float:
+        '''
+        Currently, only works for Still.
+        Config loader api wrapper.
+        Returns voltage applied to Still as a percentage.
+        '''
+        return self.get_still_output()
+
+    def set_voltage(self, ch: int, volts: float):
+        '''
+        Currently, only works for Still.
+        Config loader api wrapper.
+        Sets voltage to Still as a percentage.
+        '''
+        self.set_still_output(volts)
+        
     def read_all_channels(self):
         '''
         Read out temperature of all channels.
@@ -79,8 +95,35 @@ class LakeShore372Device:
         '''
         List available input channels on the Lake Shore 218.
         Channels are 1–16 and A.
+        Output channels are '1' (Warm-up heater), '2' (Analog output).
         '''
-        self.input_channels = list(range(1, 17))
+        self.input_channels = [str(i) for i in range(1, 17)] + ['A']
+        self.output_channels = ['sample_heater', 'still_heater']
+
+    def get_still_output(self):
+        '''
+        Read the still heater output voltage as a percentage (0–100%).
+        '''
+        try:
+            val = self.device.get_still_output()
+            return float(val)
+        except Exception as e:
+            print(f"Error reading still heater output on Lake Shore 372: {e}")
+            return None
+
+    def set_still_output(self, voltage_percentage):
+        '''
+        Set the still heater output voltage as a percentage (0–100%).
+        '''
+        try:
+            voltage_percentage = float(voltage_percentage)
+            if not 0.0 <= voltage_percentage <= 100.0:
+                raise ValueError(f"Voltage percentage must be between 0 and 100, got {voltage_percentage}")
+            self.device.set_still_output(voltage_percentage)
+            return True
+        except Exception as e:
+            print(f"Error setting still heater output on Lake Shore 372: {e}")
+            return False
 
 
 
