@@ -2,12 +2,13 @@ class Channel:
     '''
     Logical control point.
     '''
-    def __init__(self, name, backend, can_control=None, units=None, display=None):
+    def __init__(self, name, backend, can_control=None, units=None, display=None, algorithm=None):
         self.name = name
         self.backend = backend
         self.can_control = can_control
         self.units = units
         self.display = display
+        self.algorithm = algorithm
         self.last_temperature = None
         self.last_output = None
 
