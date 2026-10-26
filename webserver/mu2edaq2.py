@@ -6,20 +6,51 @@ from sql import SQL
 import queue
 from algorithm import Cycle, AlgorithmConfig
 
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
 HOST = "0.0.0.0"
 PORT = 8084
 
 LAST_VALUES = {}
 LAST_STATES = {}
 
+HARDWARE_CONNECTED = False
+
 app = Flask(__name__, template_folder="templates")
 
 controller = RemoteController(HOST, PORT)
-channel_info = controller.get_channels()
+try:
+    channel_info = controller.get_channels()
+    HARDWARE_CONNECTED = True
+except Exception:
+    channel_info = {}
+    HARDWARE_CONNECTED = False
+
 channels = channel_info.keys()
 
+"""
+controller = RemoteController(HOST, PORT)
+channel_info = controller.get_channels()
+channels = channel_info.keys()
+"""
+
+def compute_algo_maps(channel_info):
+    algo_channels = {}
+    backend_types = {}
+    for ch, info in channel_info.items():
+        backend_types[ch] = info[0]
+        role = info[4] if len(info) > 4 else None   # tolerant of old backends
+        if role:
+            algo_channels[role] = ch
+    return algo_channels, backend_types
+
+algo_channels, backend_types = compute_algo_maps(channel_info)
+
 algorithm_config = AlgorithmConfig()
-cycle_thread = Cycle(controller, algorithm_config, LAST_VALUES, LAST_STATES)
+cycle_thread = Cycle(controller, algorithm_config, LAST_VALUES, LAST_STATES,
+                     algo_channels, backend_types)
 cycle_thread.start()
 
 for ch in channels:
@@ -38,7 +69,9 @@ def root():
 # Algorithm
 @app.route("/algorithm")
 def algorithm_page():
-    return render_template("algorithm.html", defaults=algorithm_config)
+    role_backends = {role: backend_types.get(ch) for role, ch in algo_channels.items()}
+    return render_template("algorithm.html", defaults=algorithm_config,
+                           role_backends=role_backends)
 
 @app.route("/api/algorithm/config", methods=["POST"])
 def set_algorithm_config():
@@ -94,7 +127,8 @@ def controller_page():
         channels=controller_channels,
         channel_info=channel_info,
         last_values=LAST_VALUES,
-        last_states=LAST_STATES
+        last_states=LAST_STATES,
+        hardware_connected=HARDWARE_CONNECTED
     )
 
 @app.route("/api/controller_state")
@@ -178,6 +212,55 @@ def api_plotly_data():
 @app.route("/interactive")
 def interactive():
     return render_template("interactive.html")
+
+
+def do_reconnect():
+    global channel_info, channels, controller_channels, display_channels
+    global db_reader, HARDWARE_CONNECTED
+    global algo_channels, backend_types
+
+    channel_info = controller.get_channels()  # raises on failure
+    HARDWARE_CONNECTED = True
+    channels = channel_info.keys()
+
+    for ch in channels:
+        if ch not in LAST_VALUES:
+            LAST_VALUES[ch] = None
+        if ch not in LAST_STATES:
+            LAST_STATES[ch] = "off"
+
+    controller_channels = [ch for ch, info in channel_info.items() if info[1]]
+    display_channels = [ch for ch, info in channel_info.items() if info[3]]
+
+    if not db_reader.is_alive():
+        db_reader = DBReader(sql, plot_queue, display_channels)
+        db_reader.start()
+
+    algo_channels, backend_types = compute_algo_maps(channel_info)
+    cycle_thread.set_channel_map(algo_channels, backend_types)
+
+
+@app.route("/api/reconnect", methods=["POST"])
+def api_reconnect():
+    try:
+        do_reconnect()
+        return jsonify({"status": "ok"})
+    except Exception as e:
+        HARDWARE_CONNECTED = False
+        return jsonify({"status": "error", "msg": str(e)}), 503
+
+
+@app.route("/api/hardware_status")
+def api_hardware_status():
+    global HARDWARE_CONNECTED
+    try:
+        controller.ping()
+        if not HARDWARE_CONNECTED:
+            do_reconnect()
+        HARDWARE_CONNECTED = True
+    except Exception:
+        HARDWARE_CONNECTED = False
+    return jsonify({"connected": HARDWARE_CONNECTED})
 
 
 if __name__ == "__main__":
