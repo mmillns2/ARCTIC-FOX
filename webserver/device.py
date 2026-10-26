@@ -11,6 +11,8 @@ from lakeshore350device import LakeShore350Device
 from lakeshore372device import LakeShore372Device
 from MX103QP import MX103QP
 from GPDX303S import GPDX303S
+from diodedevice import OllieDiodeDevice
+from N5745A import N5745A 
 
 # Global re-entrant lock used to synchronize access to serial devices
 device_lock = RLock()
@@ -20,12 +22,11 @@ from collections import defaultdict
 
 
 def connect_devices():
-    '''
-    Scan serial ports and construct device wrappers. Returns dict of name->device.
+    """Scan serial ports and construct device wrappers. Returns dict of name->device.
 
     Each returned device is expected to expose the same methods used elsewhere
     (get_temperature, write_setpoint, set_still_voltage, etc.).
-    '''
+    """
     devices = serial.tools.list_ports.comports()
 
     ctc100A = None
@@ -41,8 +42,12 @@ def connect_devices():
     switch_psA = None   # H1
     switch_psB = None   # H2
 
+    olliebox = None
+
+    magnet_ps = None
+
     for device in devices:
-        #print(device.description)
+        print(device.description)
         if 'FT230X' in device.description:
             # match the serial numbers used previously
             if 'DK0CDLQP' in device.serial_number:
@@ -74,6 +79,17 @@ def connect_devices():
             elif 'AQ02V070' in device.serial_number:
                 switch_psB = GPDX303S(port=device.device, name='GPDX303SB')
 
+        #elif 'USB2.0-Ser!' in device.description:
+        #    olliebox = OllieDiodeDevice(port=device.device, name='DiodeBox')
+
+    # N5745A is USBTMC, not a serial port -> it won't appear in comports().
+    # Discover it separately via pyvisa.
+    try:
+        magnet_ps = N5745A(name='N5745A')
+        print("Connected N5745A (USBTMC)")
+    except Exception as e:
+        print(f"N5745A not found: {e}")
+        magnet_ps = None
 
     connected = {
         'CTC100A': ctc100A,
@@ -86,6 +102,8 @@ def connect_devices():
         'MX103QP': heater_ps,
         'GPDX303SA': switch_psA,
         'GPDX303SB': switch_psB,
+        'DiodeBox' : olliebox,
+        'N5745A' : magnet_ps,
     }
 
     # Filter out None entries
