@@ -21,24 +21,31 @@ class Controller(threading.Thread):
             for name, ch in self.channels.items():
                 if ch.display is None:
                     continue
-                ret[name] = [ch.backend.name, ch.can_control, ch.units, ch.display]
+                ret[name] = [ch.backend.name, ch.can_control, ch.units, ch.display, ch.algorithm]
 
             ret = json.dumps(ret)
             print(repr(ret))
             return ret
+
+        elif action == "ping":
+            return '0'
 
         ch = self.channels[cmd["channel"]]
 
         if action == "setpoint":
             ch.set_setpoint(cmd["value"])
             return '0'
+
         elif action == "manual":
+            '''
             for i in range(91):
                 volt_out = 9.0 - i*0.1
                 ch.set_manual(volt_out)
                 time.sleep(1800)
-            #ch.set_manual(cmd["value"])
+            '''
+            ch.set_manual(cmd["value"])
             return '0'
+
         elif action == "off":
             ch.off()
             return '0'
@@ -60,15 +67,26 @@ class Controller(threading.Thread):
                     continue
 
                 with conn:
-                    data = conn.recv(1024).decode("ascii")
-                    print("[Client] Received:", data)
+                    #data = conn.recv(1024).decode("ascii")
 
+                    buf = ""
+                    while "\n" not in buf:
+                        chunk = conn.recv(1024).decode("ascii")
+                        if not chunk:
+                            break
+                        buf += chunk
+
+                    data = buf.strip()
                     cmd = json.loads(data)
+
+                    if cmd["action"] != "ping":
+                        print("[Client] Received:", data)
+
 
                     try:
                         result = self.handle_command(cmd)
                     except Exception as e:
                         print(f"[Client] ERROR: {e}")
                         result = "1"
-                    conn.sendall(result.encode("ascii"))
+                    conn.sendall((result + "\n").encode("ascii"))
 
