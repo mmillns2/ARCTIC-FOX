@@ -7,6 +7,7 @@ def dateFromTimeStamp(time,format):
     return datetime.datetime.fromtimestamp(int(time)).strftime(format)
 
 class SQL:
+    """
     def __init__(self,debug,options):
         self.Debug = debug
         host = options[0]
@@ -21,7 +22,31 @@ class SQL:
             self.DBconn = self.db.cursor()
         except:
             print("SQL error ...")
+    """
 
+    def __init__(self, debug, options):
+        self.Debug = debug
+        self._host = options[0]
+        self._user = options[1]
+        self._port = int(options[2])
+        self._db = options[3]
+        self._connect()
+
+    def _connect(self):
+        psql_connect = "dbname=%s user=%s host=%s port=%d" % (
+            self._db, self._user, self._host, self._port
+        )
+        print("[SQL] Connecting: %s" % psql_connect)
+        self.db = psycopg2.connect(psql_connect)
+        self.schema = 'public.'
+        self.DBconn = self.db.cursor()
+
+    def reconnect(self):
+        try:
+            self.db.close()
+        except:
+            pass
+        self._connect()
 
     def commit(self):
         self.db.commit()
