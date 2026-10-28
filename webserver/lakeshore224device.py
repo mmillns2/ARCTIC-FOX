@@ -1,4 +1,5 @@
 from lakeshore.model_224 import Model224
+from lakeshore.model_224 import Model224SensorTypes
 
 
 class LakeShore224Device:
@@ -6,7 +7,7 @@ class LakeShore224Device:
     Class to interact with the Lake Shore 224 Temperature Monitor using the official driver.
     """
 
-    def __init__(self, port, name = None):
+    def __init__(self, port, name=None):
         try:
             if Model224 is not None:
                 self.device = Model224(com_port=port)
@@ -27,6 +28,47 @@ class LakeShore224Device:
 
     def get_output_channels(self):
         return []  # Lake Shore 224 has no output channels
+
+    def _get_sensor_units(self, channel, expected_types, label):
+        '''
+        Read raw sensor-units value from input A, B, C1–C5 or D1–D5,
+        after confirming the input's sensor type matches what we expect.
+        '''
+        try:
+            cfg = self.device.get_input_configuration(channel)
+            if cfg.sensor_type not in expected_types:
+                print(
+                    f"Lake Shore 224 (Channel {channel}) is configured as "
+                    f"{cfg.sensor_type.name}, not a {label} sensor"
+                )
+                return None
+            res = self.device.get_sensor_reading(channel)
+            return float(res)
+        except Exception as e:
+            print(
+                f"Error reading {label} from Lake Shore 224 (Channel {channel}): {e}"
+            )
+            return None
+
+    def get_voltage(self, channel):
+        '''
+        Read voltage in Volts from a diode input (A, B, C1–C5, D1–D5).
+        Uses package API.
+        '''
+        return self._get_sensor_units(
+            channel, (Model224SensorTypes.DIODE,), "voltage"
+        )
+
+    def get_resistance(self, channel):
+        '''
+        Read resistance in Ohms from an RTD input (A, B, C1–C5, D1–D5).
+        Uses package API.
+        '''
+        return self._get_sensor_units(
+            channel,
+            (Model224SensorTypes.PLATINUM_RTD, Model224SensorTypes.NTC_RTD),
+            "resistance",
+        )
 
     def get_temperature(self, channel):
         try:
