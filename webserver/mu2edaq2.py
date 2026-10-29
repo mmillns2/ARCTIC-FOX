@@ -5,6 +5,7 @@ from sql import SQL
 from config_loader import load_settings
 
 import queue
+import sys
 from algorithm import Cycle, AlgorithmConfig
 
 import logging
