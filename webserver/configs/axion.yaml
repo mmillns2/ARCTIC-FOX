@@ -1,3 +1,13 @@
+ports:
+  webserver: 8083
+  controller: 8084
+  database: 8082
+
+database:
+  host: localhost
+  user: axion_writer
+  name: axion_db
+
 channels:
   4HePotA [K]:
     backend: readout

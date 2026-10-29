@@ -1,3 +1,13 @@
+ports:
+  webserver: 8087
+  controller: 8086
+  database: 8085
+
+database:
+  host: localhost
+  user: dtc_writer
+  name: dtc_db
+
 channels:
   4HePotA [K]:
     backend: readout
@@ -13,6 +23,9 @@ channels:
     temperature:
       device: CTC100A
       channel: 4pump
+    actuator:
+      device: CTC100A
+      channel: 4puheat
     webserver:
       controller: True
       units: K
@@ -26,7 +39,7 @@ channels:
       channel: 4switch
     actuator:
       device: CTC100A
-      channel: 4switch
+      channel: 4swheat
     webserver:
       controller: True
       units: V 
@@ -37,13 +50,13 @@ channels:
     backend: readout_V
     voltage:
       device: CTC100A
-      channel: 4pump
+      channel: 4puheat
 
   4switchAheat [V]:
     backend: readout_V
     voltage:
       device: CTC100A
-      channel: 4switch
+      channel: 4swheat
 
   3HePotA [K]:
     backend: readout
@@ -72,7 +85,7 @@ channels:
       channel: 3switch
     actuator:
       device: CTC100A
-      channel: 3switch
+      channel: 3swheat
     webserver:
       controller: True
       units: V
@@ -83,13 +96,13 @@ channels:
     backend: readout_V
     voltage:
       device: CTC100A
-      channel: 3pump
+      channel: 3puheat
 
   3switchAheat [V]:
     backend: readout_V
     voltage:
       device: CTC100A
-      channel: 3switch
+      channel: 3swheat
  
   4HePotB [K]:
     backend: readout
@@ -118,7 +131,7 @@ channels:
       channel: 4switch
     actuator:
       device: CTC100B
-      channel: 4switch
+      channel: 4swheat
     webserver:
       controller: True
       units: V 
@@ -129,13 +142,13 @@ channels:
     backend: readout_V
     voltage:
       device: CTC100B
-      channel: 4pump
+      channel: 4puheat
 
   4switchBheat [V]:
     backend: readout_V
     voltage:
       device: CTC100B
-      channel: 4switch
+      channel: 4swheat
 
   3HePotB [K]:
     backend: readout
@@ -164,7 +177,7 @@ channels:
       channel: 3switch
     actuator:
       device: CTC100B
-      channel: 3switch
+      channel: 3swheat
     webserver:
       controller: True
       units: V
@@ -175,13 +188,13 @@ channels:
     backend: readout_V
     voltage:
       device: CTC100B
-      channel: 3pump
+      channel: 3puheat
 
   3switchBheat [V]:
     backend: readout_V
     voltage:
       device: CTC100B
-      channel: 3switch
+      channel: 3swheat
 
   MC [K]:
     backend: readout
