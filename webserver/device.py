@@ -1,10 +1,8 @@
 import serial.tools.list_ports
 from threading import RLock
 
-#from CTC100 import CTC100Device
-#from lakeshore224device import LakeShore224Device
-#from lakeshore372device import LakeShore372Device
-
+from CTC100 import CTC100Device
+from lakeshore224device import LakeShore224Device
 from lakeshore218device import LakeShore218Device
 from lakeshore336device import LakeShore336Device
 from lakeshore350device import LakeShore350Device
