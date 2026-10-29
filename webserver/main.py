@@ -16,7 +16,7 @@ from device import connect_devices
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: cryo <config.yaml>")
+        print("Usage: main.py <config.yaml>")
         sys.exit(1)
 
     config_path = sys.argv[1]
@@ -44,7 +44,7 @@ def main():
     controller = Controller(
         channels=channels,
         host="0.0.0.0",
-        port=8084
+        port=ports["controller"]
     )
 
     # Startup
