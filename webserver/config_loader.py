@@ -44,7 +44,9 @@ def load_config(path, devices, hwio):
             dev = devices[c["temperature"]["device"]]
             read_fn = lambda d=dev, ch=c["temperature"]["channel"]: \
                 hwio.call(d.get_temperature, ch)
-            sp_fn = lambda v, d=dev, ch=c["temperature"]["channel"]: \
+
+            act_dev = devices[c["actuator"]["device"]]
+            sp_fn = lambda v, d=act_dev, ch=c["actuator"]["channel"]: \
                 hwio.call(d.set_setpoint, ch, v)
             backend = HardwarePIDBackend(read_fn, sp_fn)
 
