@@ -1,5 +1,6 @@
-from lakeshore.model_224 import Model224
-from lakeshore.model_224 import Model224SensorTypes
+from lakeshore.model_224 import Model224, Model224Enums
+
+SensorType = Model224Enums.InputSensorType
 
 
 class LakeShore224Device:
@@ -55,9 +56,7 @@ class LakeShore224Device:
         Read voltage in Volts from a diode input (A, B, C1–C5, D1–D5).
         Uses package API.
         '''
-        return self._get_sensor_units(
-            channel, (Model224SensorTypes.DIODE,), "voltage"
-        )
+        return self._get_sensor_units(channel, (SensorType.DIODE,), "voltage")
 
     def get_resistance(self, channel):
         '''
@@ -66,7 +65,7 @@ class LakeShore224Device:
         '''
         return self._get_sensor_units(
             channel,
-            (Model224SensorTypes.PLATINUM_RTD, Model224SensorTypes.NTC_RTD),
+            (SensorType.PLATINUM_RTD, SensorType.NTC_RTD),
             "resistance",
         )
 
