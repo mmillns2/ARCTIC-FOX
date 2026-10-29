@@ -516,9 +516,11 @@ class CTC100Device:
             channel = f"{channel}"
         # Ensure the channel is configured as 'Set out'
         iotype = self.get_aio_iotype(channel)
-        if iotype != 'Set out':
-            raise RuntimeError(
-                f"{channel} is not configured as 'Set out'. Current IOType: {iotype}")
+
+        if iotype.strip().lower() not in ('set out', 'meas out'):
+        raise RuntimeError(
+            f"{channel} is not configured as an output. Current IOType: {iotype}")
+
         response = self.get_variable(f"{channel}.Value")
         # Extract the voltage value from the response
         match = re.search(r"[-+]?\d*\.\d+(?:[eE][-+]?\d+)?",
