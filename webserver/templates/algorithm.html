@@ -292,46 +292,6 @@ Default
 </div>
 
 
-<!-- PRECOOL -->
-<div class="panel">
-<h3>Precooling</h3>
-
-<div class="row">
-<span class="label">Initial pre-cool (K)</span>
-
-<input id="initialPrecoolValue"
-type="number"
-value="50">
-
-<button id="initialPrecool-set"
-class="set-btn not-set"
-onclick="setInitialPrecool()">
-Set
-</button>
-
-<button onclick="resetInitialPrecool()">Default</button>
-</div>
-
-
-<div class="row">
-<span class="label">Pre-cycle cool (V)</span>
-
-<input id="preCycleCoolValue"
-type="number"
-value="7">
-
-<button id="preCycleCool-set"
-class="set-btn not-set"
-onclick="setPreCycleCool()">
-Set
-</button>
-
-<button onclick="resetPreCycleCool()">Default</button>
-</div>
-
-</div>
-
-
 <!-- CONTROL -->
 <div class="panel">
 
@@ -407,47 +367,6 @@ setVal(side,key);
 
 
 
-/* PRECOOL */
-
-function setInitialPrecool(){
-
-postJSON("/api/algorithm/initial_precool",{
-value:parseFloat(
-document.getElementById("initialPrecoolValue").value)
-})
-
-.then(()=>{
-markSet("initialPrecool-set");
-markNotSet("preCycleCool-set");
-});
-
-}
-
-function setPreCycleCool(){
-
-postJSON("/api/algorithm/pre_cycle_cool",{
-value:parseFloat(
-document.getElementById("preCycleCoolValue").value)
-})
-
-.then(()=>{
-markSet("preCycleCool-set");
-markNotSet("initialPrecool-set");
-});
-
-}
-
-function resetInitialPrecool(){
-document.getElementById("initialPrecoolValue").value=50;
-setInitialPrecool();
-}
-
-function resetPreCycleCool(){
-document.getElementById("preCycleCoolValue").value=7;
-setPreCycleCool();
-}
-
-
 
 /* CONTROL */
 
@@ -494,15 +413,7 @@ document.getElementById("progressBarInner")
 document.getElementById("cycleCount").textContent=
 `Cycle: ${s.cycle}`;
 
-if(s.precool_mode==="initial"){
-markSet("initialPrecool-set");
-markNotSet("preCycleCool-set");
-}
 
-if(s.precool_mode==="precycle"){
-markSet("preCycleCool-set");
-markNotSet("initialPrecool-set");
-}
 
 },1000);
 
