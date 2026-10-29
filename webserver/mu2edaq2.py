@@ -12,6 +12,12 @@ log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
 
+if len(sys.argv) != 2:
+    print("Usage: mu2edaq2.py <config.yaml>")
+    sys.exit(1)
+
+config_path = sys.argv[1]
+
 ports, database = load_settings(config_path)
 
 LAST_VALUES = {}
