@@ -74,7 +74,7 @@ class CTC100Device:
         self.set_aio_voltage(channel, voltage)
 
     def set_setpoint(self, channel, temperature):
-        if int(temperature) == 0):
+        if int(temperature) == 0:
             self.heater_off(channel)
         else:
             self.heater_on(channel, temperature)
@@ -495,7 +495,7 @@ class CTC100Device:
         :param iotype: IOType to set ('Input', 'Set out', or 'Meas out').
         :return: Response from the device.
         """
-        valid_iotypes = ['Input', 'Set Out', 'Meas out']
+        valid_iotypes = ['Input', 'Set out', 'Meas out']
         if iotype not in valid_iotypes:
             raise ValueError(
                 f"Invalid IOType. Must be one of {valid_iotypes}.")
