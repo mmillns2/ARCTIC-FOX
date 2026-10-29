@@ -1,10 +1,12 @@
 import threading
 import time
 import copy
+import queue
+from collections import deque
 
 class DBReader(threading.Thread):
 
-    def __init__(self, sql, plot_queue, channels, interval=2.0):
+    def __init__(self, sql, plot_queue, channels, interval=2.0, max_points=200_000):
         super().__init__(daemon=True)
 
         self.sql = sql
@@ -25,8 +27,8 @@ class DBReader(threading.Thread):
 
         # plotting state
         self.state = {
-            "times": [],
-            **{ch: [] for ch in channels}
+            "times": deque(maxlen=max_points),
+            **{ch: deque(maxlen=max_points) for ch in channels}
         }
 
         # last values for forward fill
@@ -83,14 +85,15 @@ class DBReader(threading.Thread):
                             self.state[ch].append(self.state[ch][-1])
 
                 # emit snapshot
+                snapshot = {k: list(v) for k, v in self.state.items()}
                 try:
-                    self.plot_queue.put_nowait(copy.deepcopy(self.state))
+                    self.plot_queue.put_nowait(snapshot)
                 except queue.Full:
                     try:
-                        self.plot_queue.get_nowait()  # drop oldest
+                        self.plot_queue.get_nowait()
                     except queue.Empty:
                         pass
-                    self.plot_queue.put_nowait(copy.deepcopy(self.state))
+                    self.plot_queue.put_nowait(snapshot)
 
                 self.last_timestamp = t
 

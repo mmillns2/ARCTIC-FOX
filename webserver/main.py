@@ -4,7 +4,7 @@ import time
 from sql import SQL
 
 from hardwareio import HardwareIO
-from config_loader import load_config
+from config_loader import load_config, load_settings
 from temperature_readout import TemperatureReadout
 from controller import Controller
 
@@ -29,7 +29,10 @@ def main():
 
     channels = load_config(config_path, devices, hwio)
 
-    sql = SQL(debug=False, options=["localhost", "axion_writer", 8082, "axion_db"])
+    ports, database = load_settings(config_path)
+
+    sql = SQL(debug=False, options=[database["host"], database["user"],
+                                    ports["database"], database["name"]])
 
     # Threads
     temp_readout = TemperatureReadout(

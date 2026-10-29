@@ -98,3 +98,34 @@ def load_config(path, devices, hwio):
     print('')
 
     return channels
+
+def load_settings(path):
+    '''
+    Read the required ports and database sections of the config file.
+    '''
+    with open(path) as f:
+        cfg = yaml.safe_load(f) or {}
+
+    required = {
+        "ports":    ["webserver", "controller", "database"],
+        "database": ["host", "user", "name"],
+    }
+
+    missing = []
+    for section, keys in required.items():
+        if not isinstance(cfg.get(section), dict):
+            missing.append(f"'{section}:' section")
+            continue
+        for key in keys:
+            if cfg[section].get(key) is None:
+                missing.append(f"{section}.{key}")
+
+    if missing:
+        raise ValueError(f"Config file {path} is missing: {', '.join(missing)}")
+
+    p, d = cfg["ports"], cfg["database"]
+
+    ports = {k: int(p[k]) for k in required["ports"]}
+    database = {k: str(d[k]) for k in required["database"]}
+
+    return ports, database

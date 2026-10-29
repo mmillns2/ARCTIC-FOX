@@ -2,6 +2,7 @@ from remote_controller import RemoteController
 from remote_readout import DBReader
 from flask import Flask, render_template, request, jsonify
 from sql import SQL
+from config_loader import load_settings
 
 import queue
 from algorithm import Cycle, AlgorithmConfig
@@ -10,8 +11,8 @@ import logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
-HOST = "0.0.0.0"
-PORT = 8084
+
+ports, database = load_settings(config_path)
 
 LAST_VALUES = {}
 LAST_STATES = {}
@@ -20,7 +21,7 @@ HARDWARE_CONNECTED = False
 
 app = Flask(__name__, template_folder="templates")
 
-controller = RemoteController(HOST, PORT)
+controller = RemoteController("0.0.0.0", ports["controller"])
 try:
     channel_info = controller.get_channels()
     HARDWARE_CONNECTED = True
@@ -29,12 +30,6 @@ except Exception:
     HARDWARE_CONNECTED = False
 
 channels = channel_info.keys()
-
-"""
-controller = RemoteController(HOST, PORT)
-channel_info = controller.get_channels()
-channels = channel_info.keys()
-"""
 
 def compute_algo_maps(channel_info):
     algo_channels = {}
@@ -148,7 +143,7 @@ def api_set_value():
 
     backend_type = channel_info[ch][0]
 
-    if backend_type == "software_pid":
+    if backend_type == "software_pid" or backend_type == "hardware_pid":
         controller.set_setpoint(ch, value)
 
     elif backend_type == "manual":
@@ -177,7 +172,8 @@ def api_turn_off():
 
 
 # Plotting
-sql = SQL(debug=False, options=["localhost", "axion_writer", 8082, "axion_db"])
+sql = SQL(debug=False, options=[database["host"], database["user"],
+                                ports["database"], database["name"]])
 
 plot_queue = queue.Queue(maxsize=5)
 
@@ -202,12 +198,21 @@ def update_latest_plot_data():
         pass
 
 
+MAX_DISPLAY_POINTS = 5000
+
 @app.route("/api/plotly_data")
 def api_plotly_data():
-
     update_latest_plot_data()
-    return jsonify(latest_plot_snapshot)
+    snap = latest_plot_snapshot
+    n = len(snap.get("times", []))
+    if n <= MAX_DISPLAY_POINTS:
+        return jsonify(snap)
 
+    step = n // MAX_DISPLAY_POINTS
+    idx = list(range(0, n, step))
+    if idx[-1] != n - 1:
+        idx.append(n - 1)          # always include the latest point
+    return jsonify({k: [v[i] for i in idx] for k, v in snap.items()})
 
 @app.route("/interactive")
 def interactive():
@@ -264,4 +269,4 @@ def api_hardware_status():
 
 
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=8083)
+    app.run(debug=False, host="0.0.0.0", port=ports["webserver"])
