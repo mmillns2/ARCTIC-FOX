@@ -98,6 +98,15 @@ nav a{
     <input id="tmaxInput" type="number" step="0.1" value="-1">
     <span>(-1 = now)</span>
   </label>
+    <label>
+    X axis:
+    <select id="xUnit">
+      <option value="min" selected>Minutes</option>
+      <option value="hour">Hours</option>
+      <option value="day">Days</option>
+      <option value="datetime">Date/time</option>
+    </select>
+  </label>
 </div>
 
 <div id="controls"></div>
@@ -177,12 +186,21 @@ function computeGradient(timesMin, ys){
 
 /* Update plot */
 
+const X_UNITS = {
+  min:      { div: 1,    title: "Time (min)",   hover: "%{x:.2f}min" },
+  hour:     { div: 60,   title: "Time (hours)", hover: "%{x:.3f}h" },
+  day:      { div: 1440, title: "Time (days)",  hover: "%{x:.4f}d" },
+  datetime: { div: null, title: "Time",         hover: "%{x|%Y-%m-%d %H:%M:%S}" },
+};
+
 function updatePlot(){
 
   let traces = [];
 
   let tminVal = parseFloat(document.getElementById("tminInput").value);
   let tmaxVal = parseFloat(document.getElementById("tmaxInput").value);
+  let unit = document.getElementById("xUnit").value;
+  let u = X_UNITS[unit];
 
   let checkboxes = document.querySelectorAll("input[type=checkbox]:checked");
 
@@ -190,7 +208,7 @@ function updatePlot(){
 
     let ch = cb.dataset.channel;
 
-    let times = snapshot.times.map(t => new Date(t));
+    let times = snapshot.times.map(t => typeof t === "number" ? new Date(t * 1000) : new Date(t));
     let ys = snapshot[ch];
 
     if(!ys || times.length === 0) return;
@@ -199,12 +217,11 @@ function updatePlot(){
     let tMin = times.map(t => (t - t0) / 60000.0);
     let tMax = tMin[tMin.length-1];
 
-    // -1 in tmax means show up to the latest data point
     let effectiveTmax = (tmaxVal < 0) ? tMax : tmaxVal;
-    // 0 in tmin means show from the very start
     let effectiveTmin = (tminVal <= 0) ? 0 : tminVal;
 
-    let tx = [];
+    let txMin = [];   // minutes, for filtering + gradient
+    let tx = [];      // what gets plotted
     let ty = [];
 
     for(let i=0; i<ys.length; i++){
@@ -213,29 +230,26 @@ function updatePlot(){
       if(tMin[i] < effectiveTmin) continue;
       if(tMin[i] > effectiveTmax) continue;
 
-      tx.push(tMin[i]);
+      txMin.push(tMin[i]);
+      tx.push(u.div === null ? times[i] : tMin[i] / u.div);
       ty.push(ys[i]);
-
     }
 
-    if(tx.length < 2) return;
+    if(ty.length < 2) return;
 
     let current = ty[ty.length-1];
-    let grad = computeGradient(tx, ty);
+    let grad = computeGradient(txMin, ty);   // still mK/min
 
     let label = `${ch} ${current.toFixed(3)}K`;
-
     if(grad !== null)
       label += `<br>${grad.toFixed(1)}mK/min`;
 
     traces.push({
-
       x: tx,
       y: ty,
       mode: "lines",
       name: label,
-      hovertemplate: "%{y:.3f}K<br>%{x:.2f}min<extra></extra>"
-
+      hovertemplate: `%{y:.3f}K<br>${u.hover}<extra></extra>`
     });
 
   });
@@ -244,19 +258,17 @@ function updatePlot(){
 
     autosize: true,
     showlegend: true,
+    uirevision: unit,   // keeps your zoom across refreshes until you change unit
 
-    xaxis: { title: "Time (min)" },
+    xaxis: {
+      title: u.title,
+      type: u.div === null ? "date" : "linear"
+    },
     yaxis: { title: "Temperature (K)" },
 
-    legend: {
-      borderwidth: 1,
-      itemsizing: "constant"
-    },
-
+    legend: { borderwidth: 1, itemsizing: "constant" },
     margin: { r: 260 }
-
   });
-
 }
 
 
@@ -285,6 +297,7 @@ async function refresh(){
 
   document.getElementById("tminInput").oninput = updatePlot;
   document.getElementById("tmaxInput").oninput = updatePlot;
+  document.getElementById("xUnit").onchange = updatePlot;
 
   updatePlot();
 
