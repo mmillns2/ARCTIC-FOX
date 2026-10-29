@@ -518,8 +518,8 @@ class CTC100Device:
         iotype = self.get_aio_iotype(channel)
 
         if iotype.strip().lower() not in ('set out', 'meas out'):
-        raise RuntimeError(
-            f"{channel} is not configured as an output. Current IOType: {iotype}")
+            raise RuntimeError(
+                f"{channel} is not configured as an output. Current IOType: {iotype}")
 
         response = self.get_variable(f"{channel}.Value")
         # Extract the voltage value from the response
