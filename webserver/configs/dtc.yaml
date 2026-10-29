@@ -42,21 +42,21 @@ channels:
       channel: 4swheat
     webserver:
       controller: True
-      units: V 
+      units: V
       display: True
       algorithm: 4switchA
 
-  4pumpAheat [V]:
-    backend: readout_V
-    voltage:
-      device: CTC100A
-      channel: 4puheat
+#  4pumpAheat [V]:
+#   backend: readout_V
+#   voltage:
+#     device: CTC100A
+#     channel: 4pump
 
-  4switchAheat [V]:
-    backend: readout_V
-    voltage:
-      device: CTC100A
-      channel: 4swheat
+ # 4switchAheat [V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: CTC100A
+ #     channel: 4switch
 
   3HePotA [K]:
     backend: readout
@@ -72,6 +72,9 @@ channels:
     temperature:
       device: CTC100A
       channel: 3pump
+    actuator:
+      device: CTC100A
+      channel: 3puheat
     webserver:
       controller: True
       units: K
@@ -92,18 +95,18 @@ channels:
       display: True
       algorithm: 3switchA
 
-  3pumpAheat [V]:
-    backend: readout_V
-    voltage:
-      device: CTC100A
-      channel: 3puheat
+ # 3pumpAheat [V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: CTC100A
+ #     channel: 3pump
 
-  3switchAheat [V]:
-    backend: readout_V
-    voltage:
-      device: CTC100A
-      channel: 3swheat
- 
+ # 3switchAheat [V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: CTC100A
+ #     channel: 3switch
+
   4HePotB [K]:
     backend: readout
     temperature:
@@ -118,6 +121,9 @@ channels:
     temperature:
       device: CTC100B
       channel: 4pump
+    actuator:
+      device: CTC100B
+      channel: 4puheat
     webserver:
       controller: True
       units: K
@@ -134,21 +140,21 @@ channels:
       channel: 4swheat
     webserver:
       controller: True
-      units: V 
+      units: V
       display: True
       algorithm: 4switchB
 
-  4pumpBheat [V]:
-    backend: readout_V
-    voltage:
-      device: CTC100B
-      channel: 4puheat
+ # 4pumpBheat [V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: CTC100B
+ #     channel: 4pump
 
-  4switchBheat [V]:
-    backend: readout_V
-    voltage:
-      device: CTC100B
-      channel: 4swheat
+ # 4switchBheat [V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: CTC100B
+ #     channel: 4switch
 
   3HePotB [K]:
     backend: readout
@@ -164,6 +170,9 @@ channels:
     temperature:
       device: CTC100B
       channel: 3pump
+    actuator:
+      device: CTC100B
+      channel: 3puheat
     webserver:
       controller: True
       units: K
@@ -184,17 +193,17 @@ channels:
       display: True
       algorithm: 3switchB
 
-  3pumpBheat [V]:
-    backend: readout_V
-    voltage:
-      device: CTC100B
-      channel: 3puheat
+ # 3pumpBheat [V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: CTC100B
+ #     channel: 3pump
 
-  3switchBheat [V]:
-    backend: readout_V
-    voltage:
-      device: CTC100B
-      channel: 3swheat
+ # 3switchBheat [V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: CTC100B
+ #     channel: 3switch
 
   MC [K]:
     backend: readout
@@ -215,7 +224,7 @@ channels:
       channel: 0
     webserver:
       controller: True
-      units: '%' 
+      units: '%'
       display: True
 
   Condenser [K]:
@@ -227,11 +236,11 @@ channels:
       controller: False
       display: True
 
-  Stillheat [%V]:
-    backend: readout_V
-    voltage:
-      device: Lakeshore372
-      channel: A
+ # Stillheat [%V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: Lakeshore372
+ #     channel: A
 
   50K [K]:
     backend: readout
@@ -251,104 +260,104 @@ channels:
       controller: False
       display: True
 
-  4HePotA [R]:
-    backend: readout_R
-    resistance:
-      device: Lakeshore224
-      channel: C1
+ # 4HePotA [R]:
+ #   backend: readout_R
+ #   resistance:
+ #     device: Lakeshore224
+ #     channel: C1
 
-  4pumpA [V]:
-    backend: readout_V
-    voltage:
-      device: CTC100A
-      channel: 4pump
+ # 4pumpA [V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: CTC100A
+ #     channel: 4pump
 
-  4switchA [V]:
-    backend: readout_V
-    voltage:
-      device: CTC100A
-      channel: 4switch
-    
-  3HePotA [R]:
-    backend: readout_R
-    resistance:
-      device: Lakeshore224
-      channel: B
+ # 4switchA [V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: CTC100A
+ #     channel: 4switch
 
-  3pumpA [V]:
-    backend: readout_V
-    voltage:
-      device: CTC100A
-      channel: 3pump
+ # 3HePotA [R]:
+ #   backend: readout_R
+ #   resistance:
+ #     device: Lakeshore224
+ #     channel: B
 
-  3switchA [V]:
-    backend: readout_V
-    voltage:
-      device: CTC100A
-      channel: 3switch
+ # 3pumpA [V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: CTC100A
+ #     channel: 3pump
 
-  4HePotB [R]:
-    backend: readout_R
-    resistance:
-      device: Lakeshore224
-      channel: C2
+ # 3switchA [V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: CTC100A
+ #     channel: 3switch
 
-  4pumpB [V]:
-    backend: readout_V
-    voltage:
-      device: CTC100B
-      channel: 4pump
+ # 4HePotB [R]:
+ #   backend: readout_R
+ #   resistance:
+ #     device: Lakeshore224
+ #     channel: C2
 
-  4switchB [V]:
-    backend: readout_V
-    voltage:
-      device: CTC100B
-      channel: 4switch
-  
-  3HePotB [R]:
-    backend: readout_R
-    resistance:
-      device: Lakeshore224
-      channel: D1
+ # 4pumpB [V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: CTC100B
+ #     channel: 4pump
 
-  3pumpB [V]:
-    backend: readout_V
-    voltage:
-      device: CTC100B
-      channel: 3pump
-      
-  3switchB [V]:
-    backend: readout_V
-    voltage:
-      device: CTC100B
-      channel: 3switch
+ # 4switchB [V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: CTC100B
+ #     channel: 4switch
 
-  MC [R]:
-    backend: readout_R
-    resistance:
-      device: Lakeshore372
-      channel: 1
+ # 3HePotB [R]:
+ #   backend: readout_R
+ #   resistance:
+ #     device: Lakeshore224
+ #     channel: D1
 
-  Still [R]:
-    backend: readout_R
-    resistance:
-      device: Lakeshore372
-      channel: A
+ # 3pumpB [V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: CTC100B
+ #     channel: 3pump
 
-  Condenser [R]:
-    backend: readout_R
-    resistance:
-      device: Lakeshore224
-      channel: A
+ # 3switchB [V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: CTC100B
+ #     channel: 3switch
 
-  50K [V]:
-    backend: readout_V
-    voltage:
-      device: Lakeshore224
-      channel: D2
+ # MC [R]:
+ #   backend: readout_R
+ #   resistance:
+ #     device: Lakeshore372
+ #     channel: 1
 
-  4K [V]:
-    backend: readout_V
-    voltage:
-      device: Lakeshore224
-      channel: D3
+ # Still [R]:
+ #   backend: readout_R
+ #   resistance:
+ #     device: Lakeshore372
+ #     channel: A
+
+ # Condenser [R]:
+ #   backend: readout_R
+ #   resistance:
+ #     device: Lakeshore224
+ #     channel: A
+
+ # 50K [V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: Lakeshore224
+ #     channel: D2
+
+ # 4K [V]:
+ #   backend: readout_V
+ #   voltage:
+ #     device: Lakeshore224
+ #     channel: D3
