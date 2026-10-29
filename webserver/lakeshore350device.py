@@ -1,6 +1,5 @@
 from lakeshore.model_350 import Model350
 
-from calibration_data import CALIBRATION_TEMPERATURES, CALIBRATION_RESISTANCES
 
 import numpy as np
 import time

@@ -2,7 +2,6 @@ import serial
 import time
 import numpy as np
 
-from calibration_data import CALIBRATION_TEMPERATURES, CALIBRATION_RESISTANCES
 
 class LakeShore218Device:
     def __init__(self, port, name=None, timeout=1.0):
